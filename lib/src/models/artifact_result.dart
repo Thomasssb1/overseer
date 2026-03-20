@@ -1,4 +1,4 @@
-/// The artifact produced by the user's generator for a given [TestCase].
+/// The artifact produced by the user's generator for a given TestCase.
 class ArtifactResult {
   ArtifactResult({
     required this.path,
