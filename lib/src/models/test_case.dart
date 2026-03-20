@@ -1,5 +1,3 @@
-/// A single test case produced by the [MatrixEngine].
-///
 /// Contains the resolved parameter map and checklist items defined in the
 /// matrix YAML file.
 class TestCase {
