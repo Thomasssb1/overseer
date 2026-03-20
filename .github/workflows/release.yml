@@ -1,0 +1,64 @@
+name: CI & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ./.github/workflows/dart.yml
+    
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed for creating GitHub Releases
+      id-token: write # Needed for OIDC authentication with pub.dev
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.3.0"
+
+      - name: Get version from pubspec.yaml
+        id: get_version
+        run: |
+          # Use yq (pre-installed on ubuntu-latest) to deterministically parse the yaml file
+          VERSION=$(yq -r '.version' pubspec.yaml)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Verify Tag Matches Pubspec Version
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          PUBSPEC_VERSION=${{ steps.get_version.outputs.version }}
+          if [ "$TAG_VERSION" != "$PUBSPEC_VERSION" ]; then
+            echo "Error: Tag version (v$TAG_VERSION) does not match pubspec.yaml version ($PUBSPEC_VERSION)"
+            exit 1
+          fi
+          echo "Success: Tag v$TAG_VERSION matches pubspec version!"
+
+      - name: Ensure CHANGELOG entry exists & extract notes
+        id: changelog
+        if: steps.get_version.outputs.version != '0.0.0'
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ steps.get_version.outputs.version }}
+          path: ./CHANGELOG.md
+
+      - name: Create GitHub Release
+        if: steps.get_version.outputs.version != '0.0.0'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changes }}
+
+      - name: Publish to pub.dev
+        if: steps.get_version.outputs.version != '0.0.0'
+        run: dart pub publish --force
