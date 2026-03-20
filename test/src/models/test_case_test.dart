@@ -23,6 +23,15 @@ void main() {
       expect(t.label, 'Login Flow #2 [browser=firefox, os=windows]');
     });
 
+    test('produces correct label with no parameters', () {
+      const t = TestCase(
+        name: 'Login Flow',
+        index: 2,
+        params: {},
+        checklist: [],
+      );
+      expect(t.label, 'Login Flow #3');
+    });
     test('toString returns proper format', () {
       const t = TestCase(
         name: 'Foo',
