@@ -22,9 +22,11 @@ class TestCase {
 
   /// Returns a human-readable label for display in the CLI.
   String get label {
+    final baseLabel = '$name #${index + 1}';
+    if (params.isEmpty) return baseLabel;
     final paramStr =
         params.entries.map((e) => '${e.key}=${e.value}').join(', ');
-    return '$name #${index + 1} [$paramStr]';
+    return '$baseLabel [$paramStr]';
   }
 
   @override
