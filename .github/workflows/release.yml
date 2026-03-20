@@ -1,0 +1,50 @@
+name: CI & Release
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    uses: ./.github/workflows/dart.yml
+    
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed for creating GitHub Releases
+      id-token: write # Needed for OIDC authentication with pub.dev
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.3.0"
+
+      - name: Get version from pubspec.yaml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version: ' pubspec.yaml | cut -d ' ' -f 2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Ensure CHANGELOG entry exists & extract notes
+        id: changelog
+        if: steps.get_version.outputs.version != '0.0.0'
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ steps.get_version.outputs.version }}
+          path: ./CHANGELOG.md
+
+      - name: Create GitHub Release
+        if: steps.get_version.outputs.version != '0.0.0'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: ${{ steps.changelog.outputs.changes }}
+
+      - name: Publish to pub.dev
+        if: steps.get_version.outputs.version != '0.0.0'
+        run: dart pub publish --force
