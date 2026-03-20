@@ -1,10 +1,10 @@
 name: overseer
 description: A human-in-the-loop testing framework for manually verifying backend artifacts like videos, audio, and AI output.
-version: 0.1.0
+version: 0.0.0
 repository: https://github.com/Thomasssb1/overseer
 
 environment:
-  sdk: ">=3.3.0 <4.0.0"
+  sdk: "^3.3.0"
 
 dependencies:
   yaml: ^3.1.2
@@ -12,5 +12,5 @@ dependencies:
   ansi_styles: ^0.3.1
 
 dev_dependencies:
-  lints: ^4.0.0
-  test: ^1.25.0
+  lints: ^6.0.0
+  test: ^1.25.6
