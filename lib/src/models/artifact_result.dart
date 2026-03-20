@@ -1,9 +1,9 @@
 /// The artifact produced by the user's generator for a given [TestCase].
 class ArtifactResult {
-  const ArtifactResult({
+  ArtifactResult({
     required this.path,
-    this.metadata = const {},
-  });
+    Map<String, dynamic>? metadata,
+  }) : metadata = metadata ?? <String, dynamic>{};
 
   /// Absolute or relative path to the generated artifact file.
   final String path;
