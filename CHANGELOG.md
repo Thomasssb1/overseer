@@ -1,4 +1,6 @@
-## 1.0.0
+## [1.0.0] - 2026-03-21
+
+### Added
 
 - **Initial Release** of the `overseer` hitl-testing package!
 - **MatrixEngine**: Parse parameter permutations (`mode: permutations` and `mode: list`) from YAML tests.
