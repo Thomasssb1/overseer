@@ -37,21 +37,29 @@ class MatrixEngine {
     if (rawData is! YamlMap) {
       throw const MatrixParseException('Matrix YAML root must be a map.');
     }
+    try {
+      final dynamic rawData = loadYaml(file.readAsStringSync());
+      if (rawData is! YamlMap) {
+        throw const MatrixParseException('Matrix YAML root must be a map.');
+      }
 
-    final name = _requireString(rawData, 'name');
-    final checklist = _requireStringList(rawData, 'checklist');
-    final dynamic rawModeValue = rawData['mode'];
-    if (rawModeValue != null && rawModeValue is! String) {
-      throw MatrixParseException("Field 'mode' must be a string if provided.");
+      final name = _requireString(rawData, 'name');
+      final checklist = _requireStringList(rawData, 'checklist');
+      final mode = _parseMode(rawData['mode'] as String?);
+      final parameters = _parseParameters(rawData['parameters']);
+
+      final cases = mode == MatrixMode.permutations
+          ? _expandPermutations(name, checklist, parameters)
+          : _expandList(name, checklist, parameters);
+
+      return cases;
+    } on YamlException catch (e) {
+      throw MatrixParseException(
+          'Failed to parse matrix YAML in "$yamlPath": ${e.message}');
+    } on FileSystemException catch (e) {
+      throw MatrixParseException(
+          'Failed to read matrix file "$yamlPath": ${e.message}');
     }
-    final mode = _parseMode(rawModeValue as String?);
-    final parameters = _parseParameters(rawData['parameters']);
-
-    final cases = mode == MatrixMode.permutations
-        ? _expandPermutations(name, checklist, parameters)
-        : _expandList(name, checklist, parameters);
-
-    return cases;
   }
 
   // ---------------------------------------------------------------------------
