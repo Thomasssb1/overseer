@@ -97,7 +97,14 @@ class LockFile {
 
   /// Records that [index] has been completed and persists to disk.
   void advance(int index, ChecklistResult result) {
-    _lastCompletedIndex = index;
+    final resultIndex = result.testCase.index;
+    if (resultIndex != index) {
+      throw ArgumentError(
+        'Inconsistent test index: parameter index=$index, '
+        'but result.testCase.index=$resultIndex',
+      );
+    }
+    _lastCompletedIndex = resultIndex;
     _results.add(result);
     _persist();
   }
@@ -117,9 +124,18 @@ class LockFile {
       'lastCompletedIndex': _lastCompletedIndex,
       'results': _results.map(_resultToJson).toList(),
     };
-    _file.writeAsStringSync(
-      const JsonEncoder.withIndent('  ').convert(data),
-    );
+
+    // Ensure the parent directory exists before writing.
+    final directory = _file.parent;
+    if (!directory.existsSync()) {
+      directory.createSync(recursive: true);
+    }
+
+    // Write to a temporary file and then atomically replace the lock file.
+    final json = const JsonEncoder.withIndent('  ').convert(data);
+    final tempFile = File('${_file.path}.tmp');
+    tempFile.writeAsStringSync(json, flush: true);
+    tempFile.renameSync(_file.path);
   }
 
   static Map<String, dynamic> _resultToJson(ChecklistResult r) => {
