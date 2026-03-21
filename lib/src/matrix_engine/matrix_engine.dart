@@ -114,7 +114,8 @@ class MatrixEngine {
 
   static Map<String, List<dynamic>> _parseParameters(dynamic rawParameters) {
     if (rawParameters == null) {
-      throw const MatrixParseException('Missing required field \'parameters\'.');
+      throw const MatrixParseException(
+          'Missing required field \'parameters\'.');
     }
     if (rawParameters is! YamlMap) {
       throw const MatrixParseException('Field \'parameters\' must be a map.');
