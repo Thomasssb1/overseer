@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     uses: ./.github/workflows/dart.yml
+    permissions:
+      contents: write
 
   release:
     needs: build
