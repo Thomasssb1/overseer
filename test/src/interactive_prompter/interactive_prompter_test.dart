@@ -15,6 +15,30 @@ void main() {
 
     final artifact = ArtifactResult(path: '/tmp/output.mp4');
 
+    test('prints correctly formatted header without escaped templates', () async {
+      int readCount = 0;
+      final inputs = ['y', 'y'];
+      final buffer = StringBuffer();
+
+      final prompter = InteractivePrompter(
+        autoOpen: false,
+        reader: () => inputs[readCount++],
+        printer: (msg) => buffer.write(msg),
+      );
+
+      await prompter.prompt(artifact, testCase, retryCount: 2);
+      final output = buffer.toString();
+
+      // Ensure the variables are interpolated
+      expect(output, contains('Case 1: prompter_test #1 [resolution=1080]'));
+      expect(output, contains('Artifact: \x1B[0m/tmp/output.mp4'));
+      expect(output, contains('Retry #2'));
+      // ASCII box drawing character check
+      expect(output, contains('─' * 60));
+      // Ensure there are no literal dollar signs left (which would mean failed interpolation)
+      expect(output.contains('\$'), isFalse);
+    });
+
     test('completes with all passes', () async {
       int readCount = 0;
       final inputs = ['y', 'y']; // answer 'pass' to both
