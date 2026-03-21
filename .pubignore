@@ -1,6 +1,8 @@
 # A .pubignore file works exactly like a .gitignore file, but specifically for the pub.dev registry.
 # It prevents files tracked by git from being included in the final published dart package payload.
 
+pubspec.lock
+
 # --- Infrastructure ---
 .github/
 
