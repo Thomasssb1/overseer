@@ -33,10 +33,6 @@ class MatrixEngine {
       throw MatrixParseException('Matrix file not found: $yamlPath');
     }
 
-    final dynamic rawData = loadYaml(file.readAsStringSync());
-    if (rawData is! YamlMap) {
-      throw const MatrixParseException('Matrix YAML root must be a map.');
-    }
     try {
       final dynamic rawData = loadYaml(file.readAsStringSync());
       if (rawData is! YamlMap) {
@@ -45,7 +41,7 @@ class MatrixEngine {
 
       final name = _requireString(rawData, 'name');
       final checklist = _requireStringList(rawData, 'checklist');
-      final mode = _parseMode(rawData['mode'] as String?);
+      final mode = _parseMode(rawData['mode']);
       final parameters = _parseParameters(rawData['parameters']);
 
       final cases = mode == MatrixMode.permutations
@@ -55,10 +51,10 @@ class MatrixEngine {
       return cases;
     } on YamlException catch (e) {
       throw MatrixParseException(
-          'Failed to parse matrix YAML in "$yamlPath": ${e.message}');
+          'Failed to parse matrix YAML in \'$yamlPath\': ${e.message}');
     } on FileSystemException catch (e) {
       throw MatrixParseException(
-          'Failed to read matrix file "$yamlPath": ${e.message}');
+          'Failed to read matrix file \'$yamlPath\': ${e.message}');
     }
   }
 
@@ -69,10 +65,10 @@ class MatrixEngine {
   static String _requireString(YamlMap map, String key) {
     final value = map[key];
     if (value == null) {
-      throw MatrixParseException("Missing required field '$key'.");
+      throw MatrixParseException('Missing required field \'$key\'.');
     }
     if (value is! String || value.trim().isEmpty) {
-      throw MatrixParseException("Field '$key' must be a non-empty string.");
+      throw MatrixParseException('Field \'$key\' must be a non-empty string.');
     }
     return value;
   }
@@ -80,28 +76,31 @@ class MatrixEngine {
   static List<String> _requireStringList(YamlMap map, String key) {
     final value = map[key];
     if (value == null) {
-      throw MatrixParseException("Missing required field '$key'.");
+      throw MatrixParseException('Missing required field \'$key\'.');
     }
     if (value is! YamlList) {
-      throw MatrixParseException("Field '$key' must be a list.");
+      throw MatrixParseException('Field \'$key\' must be a list.');
     }
     if (value.isEmpty) {
-      throw MatrixParseException("Field '$key' must not be empty.");
+      throw MatrixParseException('Field \'$key\' must not be empty.');
     }
     final result = <String>[];
     for (var i = 0; i < value.length; i++) {
       final item = value[i];
       if (item is! String || item.trim().isEmpty) {
         throw MatrixParseException(
-            "Item at index $i in '$key' must be a non-empty string.");
+            'Item at index $i in \'$key\' must be a non-empty string.');
       }
       result.add(item);
     }
     return result;
   }
 
-  static MatrixMode _parseMode(String? rawMode) {
+  static MatrixMode _parseMode(dynamic rawMode) {
     if (rawMode == null) return MatrixMode.list;
+    if (rawMode is! String) {
+      throw const MatrixParseException('Field \'mode\' must be a string.');
+    }
     switch (rawMode.toLowerCase()) {
       case 'permutations':
         return MatrixMode.permutations;
@@ -109,41 +108,41 @@ class MatrixEngine {
         return MatrixMode.list;
       default:
         throw MatrixParseException(
-            "Unknown mode '$rawMode'. Expected 'permutations' or 'list'.");
+            'Unknown mode \'$rawMode\'. Expected \'permutations\' or \'list\'.');
     }
   }
 
   static Map<String, List<dynamic>> _parseParameters(dynamic rawParameters) {
     if (rawParameters == null) {
-      throw const MatrixParseException("Missing required field 'parameters'.");
+      throw const MatrixParseException('Missing required field \'parameters\'.');
     }
     if (rawParameters is! YamlMap) {
-      throw const MatrixParseException("Field 'parameters' must be a map.");
+      throw const MatrixParseException('Field \'parameters\' must be a map.');
     }
     final result = <String, List<dynamic>>{};
     for (final entry in rawParameters.entries) {
       final dynamic rawKey = entry.key;
       if (rawKey is! String || rawKey.trim().isEmpty) {
         throw MatrixParseException(
-            "Parameter names in 'parameters' must be non-empty strings.");
+            'Parameter names in \'parameters\' must be non-empty strings.');
       }
       final String key = rawKey;
       final value = entry.value;
       if (value is YamlList) {
         if (value.isEmpty) {
           throw MatrixParseException(
-              "Parameter '$key' must have at least one value.");
+              'Parameter \'$key\' must have at least one value.');
         }
         for (final item in value) {
           if (item is YamlMap || item is YamlList) {
             throw MatrixParseException(
-                "Parameter '$key' items must be scalar values, not complex objects.");
+                'Parameter \'$key\' items must be scalar values, not complex objects.');
           }
         }
         result[key] = value.toList();
       } else if (value is YamlMap) {
         throw MatrixParseException(
-            "Parameter '$key' must be a scalar or list of scalars, not a map.");
+            'Parameter \'$key\' must be a scalar or list of scalars, not a map.');
       } else {
         // Single scalar value — wrap in a list.
         result[key] = [value];
@@ -151,7 +150,7 @@ class MatrixEngine {
     }
     if (result.isEmpty) {
       throw const MatrixParseException(
-          "Field 'parameters' must contain at least one entry.");
+          'Field \'parameters\' must contain at least one entry.');
     }
     return result;
   }
@@ -199,8 +198,8 @@ class MatrixEngine {
     for (var i = 1; i < values.length; i++) {
       if (values[i].length != length) {
         throw MatrixParseException(
-          "In 'list' mode all parameter lists must be the same length. "
-          "'${keys[i]}' has ${values[i].length} items but expected $length.",
+          'In \'list\' mode all parameter lists must be the same length. '
+          '\'${keys[i]}\' has ${values[i].length} items but expected $length.',
         );
       }
     }
