@@ -115,6 +115,29 @@ void main() {
       );
       expect(resumed, isNull);
     });
+
+    test('returns null when the lock file contains invalid JSON', () {
+      final file = File(p.join(tempDir.path, '.overseer.lock'));
+      file.writeAsStringSync('{ intentionally corrupted json');
+
+      final resumed = LockFile.tryResume(
+        matrixPath: _matrixPath,
+        directory: tempDir.path,
+      );
+      expect(resumed, isNull);
+    });
+
+    test('returns null when the lock file json is structurally invalid', () {
+      final file = File(p.join(tempDir.path, '.overseer.lock'));
+      // Missing lastCompletedIndex but holding the right matrixPath
+      file.writeAsStringSync('{"matrixPath": "$_matrixPath"}');
+
+      final resumed = LockFile.tryResume(
+        matrixPath: _matrixPath,
+        directory: tempDir.path,
+      );
+      expect(resumed, isNull);
+    });
   });
 
   group('LockFile – clear', () {
