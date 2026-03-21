@@ -40,7 +40,11 @@ class MatrixEngine {
 
     final name = _requireString(rawData, 'name');
     final checklist = _requireStringList(rawData, 'checklist');
-    final mode = _parseMode(rawData['mode'] as String?);
+    final dynamic rawModeValue = rawData['mode'];
+    if (rawModeValue != null && rawModeValue is! String) {
+      throw MatrixParseException("Field 'mode' must be a string if provided.");
+    }
+    final mode = _parseMode(rawModeValue as String?);
     final parameters = _parseParameters(rawData['parameters']);
 
     final cases = mode == MatrixMode.permutations
@@ -73,11 +77,19 @@ class MatrixEngine {
     if (value is! YamlList) {
       throw MatrixParseException("Field '$key' must be a list.");
     }
-    final items = value.toList();
-    if (items.isEmpty) {
+    if (value.isEmpty) {
       throw MatrixParseException("Field '$key' must not be empty.");
     }
-    return items.map((e) => e.toString()).toList();
+    final result = <String>[];
+    for (var i = 0; i < value.length; i++) {
+      final item = value[i];
+      if (item is! String || item.trim().isEmpty) {
+        throw MatrixParseException(
+            "Item at index $i in '$key' must be a non-empty string.");
+      }
+      result.add(item);
+    }
+    return result;
   }
 
   static MatrixMode _parseMode(String? rawMode) {
@@ -102,7 +114,12 @@ class MatrixEngine {
     }
     final result = <String, List<dynamic>>{};
     for (final entry in rawParameters.entries) {
-      final key = entry.key.toString();
+      final dynamic rawKey = entry.key;
+      if (rawKey is! String || rawKey.trim().isEmpty) {
+        throw MatrixParseException(
+            "Parameter names in 'parameters' must be non-empty strings.");
+      }
+      final String key = rawKey;
       final value = entry.value;
       if (value is YamlList) {
         if (value.isEmpty) {
