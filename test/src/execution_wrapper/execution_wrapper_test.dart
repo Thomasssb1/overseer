@@ -58,7 +58,7 @@ void main() {
       const original = GeneratorException('deliberate error');
       expect(
         () => wrapper.run(sampleCase, (tc) async => throw original),
-        throwsA(isA<GeneratorException>()),
+        throwsA(same(original)),
       );
     });
 
