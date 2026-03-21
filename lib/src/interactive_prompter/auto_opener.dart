@@ -7,15 +7,28 @@ import 'dart:io';
 /// - **Linux**: `xdg-open "<path>"`
 ///
 /// Prints a warning if the platform is unrecognised or the command fails.
-void openArtifact(String path) {
+Future<void> openArtifact(String path) async {
   try {
     if (Platform.isWindows) {
       // 'start' is a cmd.exe built-in, so we must invoke via cmd.
-      Process.run('cmd', ['/c', 'start', '', path]);
+      final result =
+          await Process.run('cmd', ['/c', 'start', '', path]);
+      if (result.exitCode != 0) {
+        _warn(
+            'Could not auto-open artifact on Windows ($path): exit code ${result.exitCode}.');
+      }
     } else if (Platform.isMacOS) {
-      Process.run('open', [path]);
+      final result = await Process.run('open', [path]);
+      if (result.exitCode != 0) {
+        _warn(
+            'Could not auto-open artifact on macOS ($path): exit code ${result.exitCode}.');
+      }
     } else if (Platform.isLinux) {
-      Process.run('xdg-open', [path]);
+      final result = await Process.run('xdg-open', [path]);
+      if (result.exitCode != 0) {
+        _warn(
+            'Could not auto-open artifact on Linux ($path): exit code ${result.exitCode}.');
+      }
     } else {
       _warn('Auto-open is not supported on this platform. '
           'Please open $path manually.');
