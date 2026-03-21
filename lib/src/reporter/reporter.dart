@@ -32,10 +32,10 @@ class Reporter {
   Future<String> writeReport() async {
     final timestamp = _timestamp();
     final dir = Directory(p.join(_outputDir, 'reports'));
-    if (!dir.existsSync()) dir.createSync(recursive: true);
+    await dir.create(recursive: true);
 
     final file = File(p.join(dir.path, 'overseer_report_$timestamp.md'));
-    file.writeAsStringSync(_buildMarkdown(timestamp));
+    await file.writeAsString(_buildMarkdown(timestamp));
     return file.path;
   }
 
