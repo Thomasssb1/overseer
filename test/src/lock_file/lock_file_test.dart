@@ -87,7 +87,7 @@ void main() {
       expect(lock, isNull);
     });
 
-    test('resumes with correct lastCompletedIndex', () {
+    test('resumes with correct lastCompletedIndex and deserializes results', () {
       final original = LockFile.create(
         matrixPath: _matrixPath,
         directory: tempDir.path,
@@ -100,6 +100,12 @@ void main() {
       );
       expect(resumed, isNotNull);
       expect(resumed!.lastCompletedIndex, 2);
+      expect(resumed.results, hasLength(1));
+      
+      final restoredResult = resumed.results.first;
+      expect(restoredResult.testCase.index, 2);
+      expect(restoredResult.artifactPath, '/tmp/art_2.mp4');
+      expect(restoredResult.verdicts['Item'], ChecklistVerdict.pass);
     });
 
     test('returns null when matrixPath does not match', () {

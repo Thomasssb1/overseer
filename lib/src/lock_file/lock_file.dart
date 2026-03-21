@@ -76,14 +76,16 @@ class LockFile {
       final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
       if (json['matrixPath'] != matrixPath) return null;
 
-      // We can only restore lightweight metadata; TestCase.checklist and
-      // params are re-loaded from the matrix file, so we don't duplicate them.
-      // The raw results list is preserved in JSON for future resume tooling.
+      final rawResults = json['results'] as List<dynamic>? ?? [];
+      final restoredResults = rawResults
+          .map((e) => _resultFromJson(e as Map<String, dynamic>))
+          .toList();
+
       return LockFile._(
         matrixPath: matrixPath,
         directory: dir,
         lastCompletedIndex: (json['lastCompletedIndex'] as num).toInt(),
-        results: [],
+        results: restoredResults,
       );
     } catch (_) {
       // Corrupt lock file — ignore and start fresh.
@@ -132,4 +134,24 @@ class LockFile {
           (k, v) => MapEntry(k, v.name),
         ),
       };
+
+  static ChecklistResult _resultFromJson(Map<String, dynamic> json) {
+    final rawVerdicts = json['verdicts'] as Map<String, dynamic>;
+    final verdicts = rawVerdicts.map((k, v) => MapEntry(
+          k,
+          ChecklistVerdict.values.firstWhere((e) => e.name == v),
+        ));
+
+    return ChecklistResult(
+      testCase: TestCase(
+        name: json['caseName'] as String,
+        index: (json['caseIndex'] as num).toInt(),
+        params: json['params'] as Map<String, dynamic>,
+        checklist: verdicts.keys.toList(),
+      ),
+      artifactPath: json['artifactPath'] as String,
+      verdicts: verdicts,
+      retryCount: (json['retryCount'] as num).toInt(),
+    );
+  }
 }
