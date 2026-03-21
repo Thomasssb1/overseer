@@ -109,7 +109,9 @@ parameters:
       expect(cases[0].params, {'res': 720, 'bitrate': 'low'});
     });
 
-    test('list mode throws MatrixParseException if lists have different lengths', () {
+    test(
+        'list mode throws MatrixParseException if lists have different lengths',
+        () {
       final path = createYamlFile('''
 name: invalid_list_test
 mode: list
@@ -139,7 +141,9 @@ parameters:
       );
     });
 
-    test('throws MatrixParseException if parameter list contains complex objects', () {
+    test(
+        'throws MatrixParseException if parameter list contains complex objects',
+        () {
       final path = createYamlFile('''
 name: invalid_param_test
 checklist: ["Ok"]
@@ -152,8 +156,9 @@ parameters:
       );
     });
 
-
-    test('throws YamlException wrapped in MatrixParseException for invalid syntax', () {
+    test(
+        'throws YamlException wrapped in MatrixParseException for invalid syntax',
+        () {
       final path = createYamlFile('invalid: yaml: : syntax');
       expect(
         () => MatrixEngine.load(path),
