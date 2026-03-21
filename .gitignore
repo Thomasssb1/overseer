@@ -9,3 +9,4 @@ pubspec.lock
 .DS_Store
 
 example/output/
+.overseer.lock
