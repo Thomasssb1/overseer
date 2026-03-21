@@ -1,14 +1,14 @@
 # overseer
 
-A Dart human-in-the-loop (HitL) testing framework for manually verifying backend artifacts — videos, audio clips, images, and AI-generated output.
+A Dart human-in-the-loop (HitL) testing framework for manually verifying backend artifacts - videos, audio clips, images, and AI-generated output.
 
 ## Features
 
-- **Matrix Engine** — define parameter permutations in a YAML file; expand them automatically.
-- **Execution Wrapper** — pass each parameter set to your custom generation logic.
-- **Interactive Prompter** — auto-opens the artifact, walks you through a checklist, supports hot-retry (`r`) and save-and-quit (`q`).
-- **Reporter** — compiles your y/n answers into a Markdown test report.
-- **Resume / Lock File** — quit at any point and pick up exactly where you left off.
+- **Matrix Engine** - define parameter permutations in a YAML file; expand them automatically.
+- **Execution Wrapper** - pass each parameter set to your custom generation logic.
+- **Interactive Prompter** - auto-opens the artifact, walks you through a checklist, supports hot-retry (`r`) and save-and-quit (`q`).
+- **Reporter** - compiles your y/n answers into a Markdown test report.
+- **Resume / Lock File** - quit at any point and pick up exactly where you left off.
 
 ## Quick Start
 
