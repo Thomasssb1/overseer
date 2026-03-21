@@ -181,6 +181,7 @@ void main() {
       final path2 = await reporter.writeReport();
       expect(File(path1).existsSync(), isTrue);
       expect(File(path2).existsSync(), isTrue);
+      expect(path1, isNot(equals(path2)));
     });
   });
 
