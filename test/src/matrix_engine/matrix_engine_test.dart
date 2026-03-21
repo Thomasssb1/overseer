@@ -125,5 +125,62 @@ parameters:
         throwsA(isA<MatrixParseException>()),
       );
     });
+
+    test('throws MatrixParseException if parameter value is a map', () {
+      final path = createYamlFile('''
+name: invalid_param_test
+checklist: ["Ok"]
+parameters:
+  res: {width: 1080, height: 720}
+''');
+      expect(
+        () => MatrixEngine.load(path),
+        throwsA(isA<MatrixParseException>()),
+      );
+    });
+
+    test('throws MatrixParseException if parameter list contains complex objects', () {
+      final path = createYamlFile('''
+name: invalid_param_test
+checklist: ["Ok"]
+parameters:
+  res: [1080, {foo: bar}]
+''');
+      expect(
+        () => MatrixEngine.load(path),
+        throwsA(isA<MatrixParseException>()),
+      );
+    });
+
+
+    test('throws YamlException wrapped in MatrixParseException for invalid syntax', () {
+      final path = createYamlFile('invalid: yaml: : syntax');
+      expect(
+        () => MatrixEngine.load(path),
+        throwsA(isA<MatrixParseException>().having(
+          (e) => e.message,
+          'message',
+          contains('Failed to parse matrix YAML'),
+        )),
+      );
+    });
+
+    test('throws MatrixParseException if mode is not a string', () {
+      final path = createYamlFile('''
+name: invalid_mode_test
+checklist: ["Ok"]
+mode: 123
+parameters:
+  res: [1080]
+''');
+      expect(
+        () => MatrixEngine.load(path),
+        throwsA(isA<MatrixParseException>().having(
+          (e) => e.message,
+          'message',
+          contains("Field 'mode' must be a string"),
+        )),
+      );
+    });
   });
 }
