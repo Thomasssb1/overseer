@@ -42,7 +42,8 @@ class InteractivePrompter {
     PromptOutcome? earlyExit;
 
     for (final item in testCase.checklist) {
-      final outcome = await _promptItem(item, testCase, verdicts, retryCount);
+      final outcome =
+          await _promptItem(item, testCase, artifact, verdicts, retryCount);
       if (outcome != null) {
         earlyExit = outcome;
         break;
@@ -67,6 +68,7 @@ class InteractivePrompter {
   Future<PromptOutcome?> _promptItem(
     String item,
     TestCase testCase,
+    ArtifactResult artifact,
     Map<String, ChecklistVerdict> verdicts,
     int retryCount,
   ) async {
@@ -97,7 +99,7 @@ class InteractivePrompter {
           final partial = verdicts.isNotEmpty
               ? ChecklistResult(
                   testCase: testCase,
-                  artifactPath: '',
+                  artifactPath: artifact.path,
                   verdicts: Map.unmodifiable(verdicts),
                   retryCount: retryCount,
                 )

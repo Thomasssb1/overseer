@@ -115,6 +115,7 @@ void main() {
       expect(quit.partial, isNotNull);
       expect(quit.partial!.verdicts['Question 1'], ChecklistVerdict.pass);
       expect(quit.partial!.verdicts.containsKey('Question 2'), isFalse);
+      expect(quit.partial!.artifactPath, '/tmp/output.mp4');
     });
 
     test('returns null partial if q is pressed immediately', () async {
