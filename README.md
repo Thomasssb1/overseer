@@ -36,7 +36,7 @@ name: "video_quality_check"
 parameters:
   resolution: [720, 1080]
   bitrate: [low, high]
-mode: permutations   # or: list
+mode: permutations # or: list
 checklist:
   - "Video plays without artefacts"
   - "Audio is in sync"
@@ -48,13 +48,13 @@ checklist:
 
 ## CLI Shortcuts
 
-| Key | Action |
-|-----|--------|
-| `y` | Pass this checklist item |
-| `n` | Fail this checklist item |
-| `s` | Skip this checklist item |
-| `r` | Hot-retry — regenerate this artifact |
-| `q` | Save progress and quit |
+| Key | Action                               |
+| --- | ------------------------------------ |
+| `y` | Pass this checklist item             |
+| `n` | Fail this checklist item             |
+| `s` | Skip this checklist item             |
+| `r` | Hot-retry - regenerate this artifact |
+| `q` | Save progress and quit               |
 
 ## Report Output
 
