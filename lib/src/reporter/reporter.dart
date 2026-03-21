@@ -125,7 +125,9 @@ class Reporter {
         '_'
         '${_pad(now.hour)}'
         '${_pad(now.minute)}'
-        '${_pad(now.second)}';
+        '${_pad(now.second)}'
+        '_'
+        '${now.microsecondsSinceEpoch}';
   }
 
   static String _pad(int n) => n.toString().padLeft(2, '0');
