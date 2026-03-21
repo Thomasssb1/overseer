@@ -1,0 +1,10 @@
+name: "example_ai_output_check"
+parameters:
+  model: [gpt-4o, claude-3-5-sonnet]
+  temperature: [0.3, 0.9]
+mode: permutations
+checklist:
+  - "Output is coherent and on-topic"
+  - "No hallucinated facts"
+  - "Tone matches the expected style"
+  - "Response length is appropriate"
