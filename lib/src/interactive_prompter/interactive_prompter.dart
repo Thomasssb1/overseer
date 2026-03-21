@@ -13,9 +13,19 @@ import 'prompt_outcome.dart';
 /// 3. Walk through each checklist item, collecting y/n/s/r/q responses.
 /// 4. Return a [PromptOutcome] to the orchestrator.
 class InteractivePrompter {
-  const InteractivePrompter({this.autoOpen = true});
+  const InteractivePrompter({
+    this.autoOpen = true,
+    this.reader,
+    this.printer,
+  });
 
   final bool autoOpen;
+
+  /// Optional injected reader. Overrides `stdin.readLineSync` for unit tests.
+  final String? Function()? reader;
+
+  /// Optional injected printer. Overrides `stdout.write`/`writeln` for unit tests.
+  final void Function(String)? printer;
 
   Future<PromptOutcome> prompt(
     ArtifactResult artifact,
@@ -61,10 +71,9 @@ class InteractivePrompter {
     int retryCount,
   ) async {
     while (true) {
-      stdout.write(
-          _style('  › ', _cyan) + item + _style('  [y/n/s/r/q]: ', _dim));
+      _print('${_style('  › ', _cyan)}$item${_style('  [y/n/s/r/q]: ', _dim)}');
 
-      final input = stdin.readLineSync()?.trim().toLowerCase();
+      final input = _readLine()?.trim().toLowerCase();
       switch (input) {
         case 'y':
           verdicts[item] = ChecklistVerdict.pass;
@@ -102,9 +111,9 @@ class InteractivePrompter {
 
   void _printHeader(
       TestCase testCase, ArtifactResult artifact, int retryCount) {
-    final caseLine = '  Case ${testCase.index + 1}: ${testCase.label}';
-    final artifactLine = '  Artifact: ${artifact.path}';
-    final retryLine = retryCount > 0 ? '  Retry #$retryCount' : '';
+    final caseLine = '  Case \${testCase.index + 1}: \${testCase.label}';
+    final artifactLine = '  Artifact: \${artifact.path}';
+    final retryLine = retryCount > 0 ? '  Retry #\$retryCount' : '';
     final keysLine =
         '  Keys: [y] pass  [n] fail  [s] skip  [r] retry  [q] save & quit';
 
@@ -115,25 +124,46 @@ class InteractivePrompter {
       keysLine.length,
       60 // Absolute minimum fallback bound
     ];
-    final width =
-        textLengths.reduce((value, element) => value > element ? value : element) + 2;
+    final width = textLengths
+            .reduce((value, element) => value > element ? value : element) +
+        2;
 
     final bar = '─' * width;
-    _println(_style('\n$bar', _cyan));
+    _println(_style('\n\$bar', _cyan));
     _println(_style(caseLine, _bold));
-    _println(_style('  Artifact: ', _dim) + artifact.path);
+    _println('${_style('  Artifact: ', _dim)}${artifact.path}');
     if (retryCount > 0) {
       _println(_style(retryLine, _yellow));
     }
     _println(_style(bar, _cyan));
-    _println(_style('$keysLine\n', _dim));
+    _println(_style('\$keysLine\n', _dim));
+  }
+
+  void _println(String msg) {
+    if (printer != null) {
+      printer!('$msg\n');
+    } else {
+      stdout.writeln(msg);
+    }
+  }
+
+  void _print(String msg) {
+    if (printer != null) {
+      printer!(msg);
+    } else {
+      stdout.write(msg);
+    }
+  }
+
+  String? _readLine() {
+    if (reader != null) return reader!();
+    return stdin.readLineSync();
   }
 }
 
 // ---------------------------------------------------------------------------
 // Tiny ANSI helpers (avoids a heavy dependency just for colours)
 // ---------------------------------------------------------------------------
-const _reset = '\x1B[0m';
 const _bold = '\x1B[1m';
 const _dim = '\x1B[2m';
 const _green = '\x1B[32m';
@@ -141,6 +171,4 @@ const _red = '\x1B[31m';
 const _yellow = '\x1B[33m';
 const _cyan = '\x1B[36m';
 
-String _style(String text, String code) => '$code$text$_reset';
-
-void _println(String msg) => stdout.writeln(msg);
+String _style(String text, String code) => '\$code\$text\$_reset';
