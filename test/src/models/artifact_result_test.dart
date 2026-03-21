@@ -4,13 +4,13 @@ import 'package:test/test.dart';
 void main() {
   group('ArtifactResult', () {
     test('has empty metadata by default', () {
-      const result = ArtifactResult(path: 'out.mp4');
+      final result = ArtifactResult(path: 'out.mp4');
       expect(result.path, 'out.mp4');
       expect(result.metadata, isEmpty);
     });
 
     test('retains populated metadata', () {
-      const result = ArtifactResult(
+      final result = ArtifactResult(
         path: 'out.mp4',
         metadata: {'duration': 5.0},
       );
