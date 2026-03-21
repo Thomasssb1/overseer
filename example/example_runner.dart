@@ -7,7 +7,7 @@
 /// 1. Loads the example matrix (2 models × 2 temperatures = 4 cases).
 /// 2. Uses a stub generator that writes a small .txt file as the "artifact".
 /// 3. Walks you through the interactive checklist for each case.
-/// 4. Writes a Markdown report to example/reports/.
+/// 4. Writes a Markdown report to example/output/reports/.
 library;
 
 import 'dart:io';

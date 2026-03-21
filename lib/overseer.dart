@@ -5,20 +5,16 @@
 /// import 'package:overseer/overseer.dart';
 ///
 /// void main() async {
-///   // Create a matrix engine from your matrix file.
-///   final engine = MatrixEngine.fromFile('tests/my_test.matrix.yaml');
-///
-///   // Wrap the engine with an execution wrapper that knows how
-///   // to turn each test case into an artifact.
-///   final wrapper = ExecutionWrapper(
-///     engine: engine,
+///   final runner = OverseerRunner(
+///     matrixPath: 'tests/my_test.matrix.yaml',
 ///     generator: (tc) async {
+///       // Your custom generation logic here
 ///       final path = await myGenerateArtifact(tc.params);
 ///       return ArtifactResult(path: path);
 ///     },
 ///   );
 ///
-///   await wrapper.run();
+///   await runner.run();
 /// }
 /// ```
 export 'src/exceptions.dart';

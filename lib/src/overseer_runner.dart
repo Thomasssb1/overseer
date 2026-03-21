@@ -90,7 +90,7 @@ class OverseerRunner {
     }
 
     final startIndex = lock.lastCompletedIndex + 1;
-    if (startIndex > 0) {
+    if (startIndex > 0 && startIndex < cases.length) {
       _println(
         '\x1B[36m⏩  Resuming from case ${startIndex + 1} / ${cases.length}\x1B[0m',
       );
@@ -115,8 +115,13 @@ class OverseerRunner {
           if (key == 'r' && retryCount < _maxRetries) {
             retryCount++;
             retry = true;
+            continue;
           }
-          continue;
+          _println('\x1B[33m  Skipping this case and aborting the run.\x1B[0m');
+          final reportPath = await reporter.writeReport();
+          _println('\n\x1B[36m📄 Report saved to: $reportPath\x1B[0m');
+          // Keep the lock file so the run can be resumed.
+          return reportPath;
         }
 
         // 2. Prompt the reviewer.
@@ -136,12 +141,25 @@ class OverseerRunner {
               retryCount++;
               retry = true;
             } else {
-              _println(
-                  '\x1B[33m  Max retries reached for this case.\x1B[0m');
+              _println('\x1B[33m  Max retries reached for this case.\x1B[0m');
             }
 
           case PromptQuit(:final partial):
-            if (partial != null) reporter.record(partial);
+            if (partial != null) {
+              final missing = <String, ChecklistVerdict>{};
+              for (final item in testCase.checklist) {
+                if (!partial.verdicts.containsKey(item)) {
+                  missing[item] = ChecklistVerdict.skipped;
+                }
+              }
+              final normalized = ChecklistResult(
+                testCase: partial.testCase,
+                artifactPath: partial.artifactPath,
+                verdicts: {...partial.verdicts, ...missing},
+                retryCount: partial.retryCount,
+              );
+              reporter.record(normalized);
+            }
             final reportPath = await reporter.writeReport();
             _println('\n\x1B[36m📄 Report saved to: $reportPath\x1B[0m');
             // Keep the lock file so the run can be resumed.
