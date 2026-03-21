@@ -3,20 +3,20 @@ name: CI & Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 jobs:
   build:
     uses: ./.github/workflows/dart.yml
-    
+
   release:
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write # Needed for creating GitHub Releases
       id-token: write # Needed for OIDC authentication with pub.dev
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -62,3 +62,4 @@ jobs:
       - name: Publish to pub.dev
         if: steps.get_version.outputs.version != '0.0.0'
         run: dart pub publish --force
+        continue-on-error: true

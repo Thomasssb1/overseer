@@ -1,6 +1,8 @@
 # A .pubignore file works exactly like a .gitignore file, but specifically for the pub.dev registry.
 # It prevents files tracked by git from being included in the final published dart package payload.
 
+pubspec.lock
+
 # --- Infrastructure ---
 .github/
 
@@ -14,6 +16,4 @@ test/
 
 # --- Unnecessary Lib Stuff ---
 # If you have specific files inside `lib/` (like internal mock data, random dev scripts, or anything consumers shouldn't see),
-# you can list them individually or by directory here:
-# lib/src/testing_mocks/
-# lib/dummy_data.dart
+example/output/
