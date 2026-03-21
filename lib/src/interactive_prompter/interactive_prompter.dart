@@ -129,14 +129,14 @@ class InteractivePrompter {
         2;
 
     final bar = '─' * width;
-    _println(_style('\n\$bar', _cyan));
+    _println(_style('\n$bar', _cyan));
     _println(_style(caseLine, _bold));
     _println('${_style('  Artifact: ', _dim)}${artifact.path}');
     if (retryCount > 0) {
       _println(_style(retryLine, _yellow));
     }
     _println(_style(bar, _cyan));
-    _println(_style('\$keysLine\n', _dim));
+    _println(_style('$keysLine\n', _dim));
   }
 
   void _println(String msg) {
@@ -170,5 +170,6 @@ const _green = '\x1B[32m';
 const _red = '\x1B[31m';
 const _yellow = '\x1B[33m';
 const _cyan = '\x1B[36m';
+const _reset = '\x1B[0m';
 
-String _style(String text, String code) => '\$code\$text\$_reset';
+String _style(String text, String code) => '$code$text$_reset';
