@@ -14,6 +14,4 @@ test/
 
 # --- Unnecessary Lib Stuff ---
 # If you have specific files inside `lib/` (like internal mock data, random dev scripts, or anything consumers shouldn't see),
-# you can list them individually or by directory here:
-# lib/src/testing_mocks/
-# lib/dummy_data.dart
+example/output/
