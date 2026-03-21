@@ -30,7 +30,7 @@ class ExecutionWrapper {
     } catch (e, st) {
       Error.throwWithStackTrace(
         GeneratorException(
-          'Generator failed for case "${testCase.label}".',
+          'Generator failed for case \'${testCase.label}\'.',
           cause: e,
         ),
         st,
