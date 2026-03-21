@@ -40,7 +40,7 @@ class MatrixEngine {
 
     final name = _requireString(rawData, 'name');
     final checklist = _requireStringList(rawData, 'checklist');
-    final mode = _parseMode(rawData['mode'] as String? ?? 'list');
+    final mode = _parseMode(rawData['mode'] as String?);
     final parameters = _parseParameters(rawData['parameters']);
 
     final cases = mode == MatrixMode.permutations
@@ -80,7 +80,8 @@ class MatrixEngine {
     return items.map((e) => e.toString()).toList();
   }
 
-  static MatrixMode _parseMode(String rawMode) {
+  static MatrixMode _parseMode(String? rawMode) {
+    if (rawMode == null) return MatrixMode.list;
     switch (rawMode.toLowerCase()) {
       case 'permutations':
         return MatrixMode.permutations;
