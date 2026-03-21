@@ -102,17 +102,31 @@ class InteractivePrompter {
 
   void _printHeader(
       TestCase testCase, ArtifactResult artifact, int retryCount) {
-    final bar = '─' * 60;
+    final caseLine = '  Case ${testCase.index + 1}: ${testCase.label}';
+    final artifactLine = '  Artifact: ${artifact.path}';
+    final retryLine = retryCount > 0 ? '  Retry #$retryCount' : '';
+    final keysLine =
+        '  Keys: [y] pass  [n] fail  [s] skip  [r] retry  [q] save & quit';
+
+    final textLengths = [
+      caseLine.length,
+      artifactLine.length,
+      retryLine.length,
+      keysLine.length,
+      60 // Absolute minimum fallback bound
+    ];
+    final width =
+        textLengths.reduce((value, element) => value > element ? value : element) + 2;
+
+    final bar = '─' * width;
     _println(_style('\n$bar', _cyan));
-    _println(_style('  Case ${testCase.index + 1}: ${testCase.label}', _bold));
+    _println(_style(caseLine, _bold));
     _println(_style('  Artifact: ', _dim) + artifact.path);
     if (retryCount > 0) {
-      _println(_style('  Retry #$retryCount', _yellow));
+      _println(_style(retryLine, _yellow));
     }
     _println(_style(bar, _cyan));
-    _println(_style(
-        '  Keys: [y] pass  [n] fail  [s] skip  [r] retry  [q] save & quit\n',
-        _dim));
+    _println(_style('$keysLine\n', _dim));
   }
 }
 
