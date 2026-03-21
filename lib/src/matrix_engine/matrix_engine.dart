@@ -134,7 +134,16 @@ class MatrixEngine {
           throw MatrixParseException(
               "Parameter '$key' must have at least one value.");
         }
+        for (final item in value) {
+          if (item is YamlMap || item is YamlList) {
+            throw MatrixParseException(
+                "Parameter '$key' items must be scalar values, not complex objects.");
+          }
+        }
         result[key] = value.toList();
+      } else if (value is YamlMap) {
+        throw MatrixParseException(
+            "Parameter '$key' must be a scalar or list of scalars, not a map.");
       } else {
         // Single scalar value — wrap in a list.
         result[key] = [value];
