@@ -173,6 +173,5 @@ const _green = '\x1B[32m';
 const _red = '\x1B[31m';
 const _yellow = '\x1B[33m';
 const _cyan = '\x1B[36m';
-const _reset = '\x1B[0m';
 
 String _style(String text, String code) => '$code$text$_reset';
