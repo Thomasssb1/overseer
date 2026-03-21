@@ -10,13 +10,13 @@ This document contains rules, preferences, and architectural standards extracted
 
 ## 2. Dart Best Practices & Linting
 
-- **Single Quotes (`prefer_single_quotes`):** Always use single quotes strings (`'`) in Dart code. Double quotes (`"`) are only allowed if the string strictly contains a literal single quote inside it (e.g., `'Parameter \'$key\''` or `"Parameter '$key'"`).
+- **Single Quotes (`prefer_single_quotes`):** Always use single quotes strings (`'`) in Dart code. Double quotes (`"`) are only allowed if the string strictly contains a literal single quote inside it (e.g., `'Parameter \'$key\''` or `"Parameter '$key'"`). Don't escape $ as \$ in single quotes.
 - **`dart format`:** Always ensure any Dart code written strictly aligns with the native `dart format .` standards.
 
 ## 3. Testing Mandates
 
 - **No Un-tested Code:** Every new class, function, or engine feature you write **must** include an accompanying unit test inside the `test/src/` directory that accurately mirrors the `lib/src/` path structure.
-- **Exhaustive Branch Coverage:** When writing tests (especially for logic/schema parsing like `MatrixEngine`), do not just write happy-path tests. You must write explicit tests that trigger structural Exceptions, schema validation failures, and mismatched list/variable length failures.
+- **Exhaustive Branch Coverage:** When writing tests (especially for logic/schema parsing like `MatrixEngine`), you must write **both** comprehensive happy-path tests to verify expected behavior **and** explicit negative tests that trigger structural Exceptions, schema validation failures, and mismatched list/variable length failures. Do not focus exclusively on one or the other.
 - **Temporary Files in Tests:** If testing file-system reading (like `.matrix.yaml`), strictly use `Directory.systemTemp.createTempSync()` in `setUp()` and safely delete the temporary directory in `tearDown()`.
 
 ## 4. Error Handling & Validation
