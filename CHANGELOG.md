@@ -9,9 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2026-10-11
 
+### Added
+
+- Cross-platform artifact-opening tests covering launcher arguments, paths with spaces, command failures, and unsupported platforms without opening applications.
+
 ### Changed
 
 - Clarify the package description and add pub.dev topics for discoverability.
+- Rename the runnable example for pub.dev's Example tab and document artifact review, retries, save-and-quit, resume behavior, and report locations.
 
 ### Fixed
 

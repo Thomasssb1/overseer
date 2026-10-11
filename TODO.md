@@ -2,7 +2,7 @@
 
 ## Package Distribution & Layout
 
-- [ ] **Standardize Example**: Rename `example/example_runner.dart` to `example/overseer_example.dart` (or `example/example.dart`). According to Dart's [package layout conventions](https://dart.dev/tools/pub/package-layout#examples), `pub.dev` specifically looks for `example/example.dart` or a file matching the package name to automatically populate the **Example** tab online!
+- [x] **Standardize Example**: Provide `example/overseer_example.dart` for the pub.dev Example tab, with a documented run, retry, resume, and report walkthrough.
 - [x] **Refine Pubspec**: Improve package topics and description on `pub.dev`.
 
 ## Core Features & Enhancements
@@ -14,5 +14,5 @@
 
 ## Testing & Hardening
 
-- [ ] **OS-Level `autoOpen` Tests**: Currently the native runner auto-open functionality isn't tested out-of-the-box. We could mock `Process.run` to securely test these cross-platform invocation strings.
+- [x] **OS-Level `autoOpen` Tests**: Verify Windows, macOS, and Linux launcher arguments, paths with spaces, failed commands, exceptions, and unsupported platforms without launching applications.
 - [ ] **Integration Stub**: Expand the example generator stub into an actual minimal hitl test suite for users to see exactly what an end-to-end `overseer` environment feels like.

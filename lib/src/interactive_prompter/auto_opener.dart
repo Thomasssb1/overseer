@@ -7,34 +7,41 @@ import 'dart:io';
 /// - **Linux**: `xdg-open "<path>"`
 ///
 /// Prints a warning if the platform is unrecognised or the command fails.
-Future<void> openArtifact(String path) async {
+Future<void> openArtifact(
+  String path, {
+  String? operatingSystem,
+  Future<ProcessResult> Function(String, List<String>)? processRunner,
+  void Function(String)? warningPrinter,
+}) async {
+  final platform = operatingSystem ?? Platform.operatingSystem;
+  final runProcess = processRunner ?? Process.run;
+  final warn = warningPrinter ?? _warn;
   try {
-    if (Platform.isWindows) {
+    if (platform == 'windows') {
       // 'start' is a cmd.exe built-in, so we must invoke via cmd.
-      final result =
-          await Process.run('cmd', ['/c', 'start', '', path]);
+      final result = await runProcess('cmd', ['/c', 'start', '', path]);
       if (result.exitCode != 0) {
-        _warn(
+        warn(
             'Could not auto-open artifact on Windows ($path): exit code ${result.exitCode}.');
       }
-    } else if (Platform.isMacOS) {
-      final result = await Process.run('open', [path]);
+    } else if (platform == 'macos') {
+      final result = await runProcess('open', [path]);
       if (result.exitCode != 0) {
-        _warn(
+        warn(
             'Could not auto-open artifact on macOS ($path): exit code ${result.exitCode}.');
       }
-    } else if (Platform.isLinux) {
-      final result = await Process.run('xdg-open', [path]);
+    } else if (platform == 'linux') {
+      final result = await runProcess('xdg-open', [path]);
       if (result.exitCode != 0) {
-        _warn(
+        warn(
             'Could not auto-open artifact on Linux ($path): exit code ${result.exitCode}.');
       }
     } else {
-      _warn('Auto-open is not supported on this platform. '
+      warn('Auto-open is not supported on this platform. '
           'Please open $path manually.');
     }
   } catch (e) {
-    _warn('Could not auto-open artifact ($path): $e');
+    warn('Could not auto-open artifact ($path): $e');
   }
 }
 
