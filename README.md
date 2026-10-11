@@ -29,6 +29,24 @@ void main() async {
 }
 ```
 
+## Try the Example
+
+From the package root:
+
+```sh
+dart pub get
+dart run example/overseer_example.dart
+```
+
+This self-contained demo writes text artifacts for four parameter combinations
+and walks you through reviewing them. No API keys or external services are needed.
+Open each displayed artifact path manually; use `r` to regenerate or `q` to save
+and quit. Run the same command again to resume at the first unfinished case.
+
+Reports are saved under `example/output/reports/`. See the
+[example walkthrough](example/README.md) for retry behavior, partial reports,
+resume details, and adapting the generator.
+
 ## Matrix YAML
 
 ```yaml

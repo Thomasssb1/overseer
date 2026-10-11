@@ -17,6 +17,8 @@
 ///   await runner.run();
 /// }
 /// ```
+library;
+
 export 'src/exceptions.dart';
 export 'src/execution_wrapper/execution_wrapper.dart'
     show ExecutionWrapper, ArtifactGenerator;
