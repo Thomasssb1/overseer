@@ -67,6 +67,9 @@ class OverseerRunner {
 
   /// Runs the full session: load matrix → generate → prompt → report.
   ///
+  /// Requesting another retry after [maxRetries] is exhausted saves a partial
+  /// report and stops the session. The next run resumes the unfinished case.
+  ///
   /// Returns the path to the written report file.
   Future<String> run() async {
     final cases = MatrixEngine.load(matrixPath);
@@ -141,7 +144,14 @@ class OverseerRunner {
               retryCount++;
               retry = true;
             } else {
-              _println('\x1B[33m  Max retries reached for this case.\x1B[0m');
+              _println(
+                '\x1B[33m  Max retries reached for this case. '
+                'Saving progress and stopping the run.\x1B[0m',
+              );
+              final reportPath = await reporter.writeReport();
+              _println('\n\x1B[36m📄 Report saved to: $reportPath\x1B[0m');
+              // Keep completed progress and resume this unfinished case later.
+              return reportPath;
             }
 
           case PromptQuit(:final partial):
