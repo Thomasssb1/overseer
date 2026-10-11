@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Remove emojis from terminal status messages and print the example's report location only once.
 - Clarify the package description and add pub.dev topics for discoverability.
 - Rename the runnable example for pub.dev's Example tab and document artifact review, retries, save-and-quit, resume behavior, and report locations.
 
 ### Fixed
 
+- Wrap interactive case headers to fit narrow terminals, preserving long parameter values and artifact paths.
 - Stop the session and preserve completed progress when hot retries are exhausted, so the unfinished case can be resumed instead of silently omitted from a completed run.
 - Treat end-of-input as save-and-quit, preserving partial review results and resumable progress instead of repeatedly prompting after EOF.
 - Use the same Dart SDK for CI and publishing, validate the package before creating a release, and fail the release workflow if publishing fails.

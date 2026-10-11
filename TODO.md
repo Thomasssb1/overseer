@@ -10,7 +10,7 @@
 - [ ] **`mode: random_n`**: Implement a random permutation selector in `MatrixEngine` so users can evaluate exactly `N` distinct random cases from an enormous hyper-parameter space.
 - [ ] **Conditional Matrix Parameters**: Add support for dependent arguments (e.g. if `video_codec: h265`, only inject `bitrate: 4k`).
 - [ ] **Custom Reporter Templates**: Allow users to override how the Markdown report is visually dumped out.
-- [ ] **UI Responsiveness**: Bullet-proof the `InteractivePrompter` tabular header outputs so they wrap cleanly if a user is evaluating an exceptionally long parameter string on a tiny terminal width.
+- [x] **UI Responsiveness**: Wrap case headers, long parameters, artifact paths, and key hints to the terminal width, with an 80-column fallback for redirected output.
 
 ## Testing & Hardening
 

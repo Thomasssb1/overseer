@@ -61,6 +61,5 @@ Future<void> main() async {
     },
   );
 
-  final reportPath = await runner.run();
-  stdout.writeln('\nOpen your report: $reportPath');
+  await runner.run();
 }

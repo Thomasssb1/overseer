@@ -1,9 +1,13 @@
 import 'dart:io';
+import 'dart:math' as math;
+
+import 'package:termunicode/termunicode.dart';
 
 import '../models.dart';
 import 'auto_opener.dart';
 
 import 'prompt_outcome.dart';
+import 'wrap_terminal_text.dart';
 
 /// Drives the interactive CLI session for a single [TestCase].
 ///
@@ -17,6 +21,7 @@ class InteractivePrompter {
     this.autoOpen = true,
     this.reader,
     this.printer,
+    this.terminalWidth,
   });
 
   final bool autoOpen;
@@ -27,6 +32,10 @@ class InteractivePrompter {
 
   /// Optional injected printer. Overrides `stdout.write`/`writeln` for unit tests.
   final void Function(String)? printer;
+
+  /// Overrides the detected terminal width. Unavailable or nonpositive widths
+  /// use 80 columns, including when stdout is redirected.
+  final int? terminalWidth;
 
   Future<PromptOutcome> prompt(
     ArtifactResult artifact,
@@ -80,23 +89,22 @@ class InteractivePrompter {
       switch (input) {
         case 'y':
           verdicts[item] = ChecklistVerdict.pass;
-          _println(_style('    ✅ pass', _green));
+          _println(_style('    pass', _green));
           return null;
         case 'n':
           verdicts[item] = ChecklistVerdict.fail;
-          _println(_style('    ❌ fail', _red));
+          _println(_style('    fail', _red));
           return null;
         case 's':
           verdicts[item] = ChecklistVerdict.skipped;
-          _println(_style('    ⏭  skipped', _yellow));
+          _println(_style('    skipped', _yellow));
           return null;
         case 'r':
-          _println(
-              _style('\n  ↺  Hot-retry — regenerating artifact…\n', _yellow));
+          _println(_style('\n  Hot-retry — regenerating artifact…\n', _yellow));
           return PromptRetry();
         case null:
         case 'q':
-          _println(_style('\n  ⏸  Saving progress and quitting…\n', _yellow));
+          _println(_style('\n  Saving progress and quitting…\n', _yellow));
           // Build a partial result with what we have so far.
           final partial = verdicts.isNotEmpty
               ? ChecklistResult(
@@ -121,26 +129,40 @@ class InteractivePrompter {
     final keysLine =
         '  Keys: [y] pass  [n] fail  [s] skip  [r] retry  [q] save & quit';
 
-    final textLengths = [
-      caseLine.length,
-      artifactLine.length,
-      retryLine.length,
-      keysLine.length,
-      60 // Absolute minimum fallback bound
-    ];
-    final width = textLengths
-            .reduce((value, element) => value > element ? value : element) +
-        2;
-
-    final bar = '─' * width;
-    _println(_style('\n$bar', _cyan));
-    _println(_style(caseLine, _bold));
-    _println('${_style('  Artifact: ', _dim)}${artifact.path}');
-    if (retryCount > 0) {
-      _println(_style(retryLine, _yellow));
+    var columns = terminalWidth ?? 80;
+    if (terminalWidth == null) {
+      try {
+        if (stdout.hasTerminal) columns = stdout.terminalColumns;
+      } on StdoutException {
+        columns = 80;
+      }
     }
-    _println(_style(bar, _cyan));
-    _println(_style('$keysLine\n', _dim));
+    if (columns <= 0) columns = 80;
+
+    final header = [
+      (caseLine, _bold),
+      (artifactLine, _dim),
+      if (retryCount > 0) (retryLine, _yellow),
+      (keysLine, _dim),
+    ]
+        .map((entry) => (
+              wrapTerminalText(entry.$1, columns,
+                  continuationIndent: columns >= 4 ? '  ' : ''),
+              entry.$2,
+            ))
+        .toList();
+    final contentWidth =
+        header.expand((entry) => entry.$1).map(widthString).fold(60, math.max);
+    final bar = '─' * math.min(columns, contentWidth + 2);
+    _println(_style('\n$bar', _cyan));
+    for (var index = 0; index < header.length; index++) {
+      if (index == header.length - 1) _println(_style(bar, _cyan));
+      final (lines, style) = header[index];
+      for (final line in lines) {
+        _println(_style(line, style));
+      }
+    }
+    _println('');
   }
 
   void _println(String msg) {

@@ -95,7 +95,7 @@ class OverseerRunner {
     final startIndex = lock.lastCompletedIndex + 1;
     if (startIndex > 0 && startIndex < cases.length) {
       _println(
-        '\x1B[36m⏩  Resuming from case ${startIndex + 1} / ${cases.length}\x1B[0m',
+        '\x1B[36mResuming from case ${startIndex + 1} / ${cases.length}\x1B[0m',
       );
     }
 
@@ -112,7 +112,7 @@ class OverseerRunner {
         try {
           artifact = await wrapper.run(testCase, generator);
         } catch (e) {
-          _println('\x1B[31m  ✖ Generator error: $e\x1B[0m');
+          _println('\x1B[31m  Generator error: $e\x1B[0m');
           _print('  Retry this case? [r=yes / any key=skip]: ');
           final key = _readLine()?.trim().toLowerCase();
           if (key == 'r' && retryCount < _maxRetries) {
@@ -122,7 +122,7 @@ class OverseerRunner {
           }
           _println('\x1B[33m  Skipping this case and aborting the run.\x1B[0m');
           final reportPath = await reporter.writeReport();
-          _println('\n\x1B[36m📄 Report saved to: $reportPath\x1B[0m');
+          _println('\n\x1B[36mReport saved to: $reportPath\x1B[0m');
           // Keep the lock file so the run can be resumed.
           return reportPath;
         }
@@ -149,7 +149,7 @@ class OverseerRunner {
                 'Saving progress and stopping the run.\x1B[0m',
               );
               final reportPath = await reporter.writeReport();
-              _println('\n\x1B[36m📄 Report saved to: $reportPath\x1B[0m');
+              _println('\n\x1B[36mReport saved to: $reportPath\x1B[0m');
               return reportPath;
             }
 
@@ -170,7 +170,7 @@ class OverseerRunner {
               reporter.record(normalized);
             }
             final reportPath = await reporter.writeReport();
-            _println('\n\x1B[36m📄 Report saved to: $reportPath\x1B[0m');
+            _println('\n\x1B[36mReport saved to: $reportPath\x1B[0m');
             // Keep the lock file so the run can be resumed.
             return reportPath;
         }
@@ -181,8 +181,8 @@ class OverseerRunner {
     lock.clear();
     final reportPath = await reporter.writeReport();
     _println(
-      '\n\x1B[32m✅ All ${cases.length} case(s) complete.\x1B[0m'
-      '\n\x1B[36m📄 Report: $reportPath\x1B[0m',
+      '\n\x1B[32mAll ${cases.length} case(s) complete.\x1B[0m'
+      '\n\x1B[36mReport: $reportPath\x1B[0m',
     );
     return reportPath;
   }

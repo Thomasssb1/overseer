@@ -17,6 +17,8 @@ dependencies:
   yaml: ^3.1.2
   path: ^1.9.0
   ansi_styles: ^0.3.1
+  characters: ^1.3.0
+  termunicode: ^0.1.0
 
 dev_dependencies:
   lints: ^6.0.0
