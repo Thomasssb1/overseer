@@ -25,6 +25,153 @@ checklist:
 
   tearDown(() => tempDir.deleteSync(recursive: true));
 
+  group('EOF', () {
+    setUp(() {
+      File(matrixPath).writeAsStringSync('''
+name: eof_test
+parameters:
+  color: [red, blue, green]
+mode: list
+checklist:
+  - Item 1
+  - Item 2
+''');
+    });
+
+    for (final completedCases in [0, 1]) {
+      for (final partialReview in [false, true]) {
+        test(
+          'saves and resumes after $completedCases completed cases '
+          'with partial review $partialReview',
+          () async {
+            final inputs = <String?>[
+              ...List.filled(completedCases * 2, 'y'),
+              if (partialReview) 'n',
+              null,
+            ];
+            var readIndex = 0;
+            final generatedIndices = <int>[];
+            final output = StringBuffer();
+            final runner = OverseerRunner(
+              matrixPath: matrixPath,
+              outputDir: tempDir.path,
+              autoOpen: false,
+              reader: () => inputs[readIndex++],
+              printer: output.write,
+              generator: (testCase) async {
+                generatedIndices.add(testCase.index);
+                return ArtifactResult(path: '/fake/${testCase.index}.txt');
+              },
+            );
+
+            final reportPath = await runner.run();
+
+            expect(readIndex, inputs.length);
+            expect(generatedIndices, [
+              for (var i = 0; i <= completedCases; i++) i,
+            ]);
+            expect(output.toString(), contains('Saving progress and quitting'));
+            expect(output.toString(), contains('Report saved to: $reportPath'));
+            expect(output.toString(), isNot(contains('case(s) complete')));
+            expect(output.toString(), isNot(contains('Please enter')));
+            final report = File(reportPath).readAsStringSync();
+            final failedCases = partialReview ? 1 : 0;
+            final reportedCases = completedCases + failedCases;
+            expect(
+              report,
+              contains(
+                  '| $reportedCases | $completedCases | $failedCases | 0 |'),
+            );
+            if (partialReview) {
+              expect(report,
+                  contains('### [❌ FAIL] eof_test #${completedCases + 1}'));
+              expect(report, contains('| Item 1 | ❌ |'));
+              expect(report, contains('| Item 2 | ⏭ |'));
+            }
+
+            final lock = LockFile.tryResume(
+              matrixPath: matrixPath,
+              directory: tempDir.path,
+            );
+            if (completedCases > 0) {
+              expect(lock, isNotNull);
+              expect(lock!.lastCompletedIndex, completedCases - 1);
+              expect(lock.results, hasLength(completedCases));
+            } else {
+              expect(lock?.lastCompletedIndex ?? -1, -1);
+            }
+
+            final resumedIndices = <int>[];
+            final resumed = OverseerRunner(
+              matrixPath: matrixPath,
+              outputDir: tempDir.path,
+              autoOpen: false,
+              reader: () => 'y',
+              printer: (_) {},
+              generator: (testCase) async {
+                resumedIndices.add(testCase.index);
+                return ArtifactResult(path: '/fake/${testCase.index}.txt');
+              },
+            );
+
+            final resumedReportPath = await resumed.run();
+
+            expect(resumedIndices, [
+              for (var i = completedCases; i < 3; i++) i,
+            ]);
+            final resumedReport = File(resumedReportPath).readAsStringSync();
+            expect(resumedReport, contains('| 3 | 3 | 0 | 0 |'));
+            for (var i = 0; i < 3; i++) {
+              expect(
+                '### [✅ PASS] eof_test #${i + 1}'.allMatches(resumedReport),
+                hasLength(1),
+              );
+            }
+            expect(File(p.join(tempDir.path, '.overseer.lock')).existsSync(),
+                isFalse);
+          },
+        );
+      }
+    }
+
+    test('stops on EOF at the generator retry prompt and preserves progress',
+        () async {
+      final inputs = <String?>['y', 'y', null];
+      var readIndex = 0;
+      final generatedIndices = <int>[];
+      final output = StringBuffer();
+      final runner = OverseerRunner(
+        matrixPath: matrixPath,
+        outputDir: tempDir.path,
+        autoOpen: false,
+        reader: () => inputs[readIndex++],
+        printer: output.write,
+        generator: (testCase) async {
+          generatedIndices.add(testCase.index);
+          if (testCase.index == 1) throw StateError('Generation failed');
+          return ArtifactResult(path: '/fake/${testCase.index}.txt');
+        },
+      );
+
+      final reportPath = await runner.run();
+
+      expect(readIndex, inputs.length);
+      expect(generatedIndices, [0, 1]);
+      expect(output.toString(), contains('Generator error'));
+      expect(output.toString(), contains('Report saved to: $reportPath'));
+      expect(output.toString(), isNot(contains('case(s) complete')));
+      expect(
+          File(reportPath).readAsStringSync(), contains('| 1 | 1 | 0 | 0 |'));
+      final lock = LockFile.tryResume(
+        matrixPath: matrixPath,
+        directory: tempDir.path,
+      );
+      expect(lock, isNotNull);
+      expect(lock!.lastCompletedIndex, 0);
+      expect(lock.results, hasLength(1));
+    });
+  });
+
   group('retry exhaustion', () {
     setUp(() {
       File(matrixPath).writeAsStringSync('''

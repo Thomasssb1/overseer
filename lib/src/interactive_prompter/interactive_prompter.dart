@@ -22,6 +22,7 @@ class InteractivePrompter {
   final bool autoOpen;
 
   /// Optional injected reader. Overrides `stdin.readLineSync` for unit tests.
+  /// Returning `null` signals EOF and quits the session.
   final String? Function()? reader;
 
   /// Optional injected printer. Overrides `stdout.write`/`writeln` for unit tests.
@@ -93,6 +94,7 @@ class InteractivePrompter {
           _println(
               _style('\n  ↺  Hot-retry — regenerating artifact…\n', _yellow));
           return PromptRetry();
+        case null:
         case 'q':
           _println(_style('\n  ⏸  Saving progress and quitting…\n', _yellow));
           // Build a partial result with what we have so far.

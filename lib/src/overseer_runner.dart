@@ -150,7 +150,6 @@ class OverseerRunner {
               );
               final reportPath = await reporter.writeReport();
               _println('\n\x1B[36m📄 Report saved to: $reportPath\x1B[0m');
-              // Keep completed progress and resume this unfinished case later.
               return reportPath;
             }
 

@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Stop the session and preserve completed progress when hot retries are exhausted, so the unfinished case can be resumed instead of silently omitted from a completed run.
+- Treat end-of-input as save-and-quit, preserving partial review results and resumable progress instead of repeatedly prompting after EOF.
 
 ## [1.0.0] - 2026-03-21
 

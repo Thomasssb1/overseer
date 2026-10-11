@@ -15,7 +15,8 @@ void main() {
 
     final artifact = ArtifactResult(path: '/tmp/output.mp4');
 
-    test('prints correctly formatted header without escaped templates', () async {
+    test('prints correctly formatted header without escaped templates',
+        () async {
       int readCount = 0;
       final inputs = ['y', 'y'];
       final buffer = StringBuffer();
@@ -136,14 +137,59 @@ void main() {
       expect(quit.partial, isNull);
     });
 
-    test('repeats prompt cleanly if input is unrecognized', () async {
+    test('quits immediately on EOF without requesting more input', () async {
+      final inputs = <String?>[null];
+      var readCount = 0;
+      final output = StringBuffer();
+      final prompter = InteractivePrompter(
+        autoOpen: false,
+        reader: () => inputs[readCount++],
+        printer: output.write,
+      );
+
+      final outcome = await prompter.prompt(artifact, testCase);
+
+      expect(outcome, isA<PromptQuit>());
+      expect((outcome as PromptQuit).partial, isNull);
+      expect(readCount, 1);
+      expect(output.toString(), contains('Saving progress and quitting'));
+      expect(output.toString(), isNot(contains('Please enter')));
+    });
+
+    for (final (answer, verdict) in [
+      ('y', ChecklistVerdict.pass),
+      ('n', ChecklistVerdict.fail),
+      ('s', ChecklistVerdict.skipped),
+    ]) {
+      test('EOF preserves a partial $answer review and retry count', () async {
+        final inputs = <String?>[answer, null];
+        var readCount = 0;
+        final output = StringBuffer();
+        final prompter = InteractivePrompter(
+          autoOpen: false,
+          reader: () => inputs[readCount++],
+          printer: output.write,
+        );
+
+        final outcome =
+            await prompter.prompt(artifact, testCase, retryCount: 2);
+
+        expect(outcome, isA<PromptQuit>());
+        final partial = (outcome as PromptQuit).partial;
+        expect(partial, isNotNull);
+        expect(partial!.testCase, same(testCase));
+        expect(partial.artifactPath, artifact.path);
+        expect(partial.retryCount, 2);
+        expect(partial.verdicts, {'Question 1': verdict});
+        expect(readCount, 2);
+        expect(output.toString(), contains('Saving progress and quitting'));
+        expect(output.toString(), isNot(contains('Please enter')));
+      });
+    }
+
+    test('repeats prompt cleanly if input is blank or unrecognized', () async {
       int readCount = 0;
-      final inputs = [
-        'invalid',
-        'garbage',
-        'y',
-        's'
-      ]; // garbage x2, then valid inputs
+      final inputs = ['', '   ', 'invalid', 'garbage', 'y', 's'];
 
       final prompter = InteractivePrompter(
         autoOpen: false,
@@ -158,6 +204,7 @@ void main() {
 
       expect(result.verdicts['Question 1'], ChecklistVerdict.pass);
       expect(result.verdicts['Question 2'], ChecklistVerdict.skipped);
+      expect(readCount, inputs.length);
     });
   });
 }

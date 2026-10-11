@@ -1,6 +1,6 @@
 part of 'prompt_outcome.dart';
 
-/// The reviewer pressed `q` — save progress and quit the session.
+/// The reviewer pressed `q` or input ended — save progress and quit the session.
 class PromptQuit extends PromptOutcome {
   PromptQuit(this.partial);
 
