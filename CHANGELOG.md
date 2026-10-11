@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-11
+
+### Changed
+
+- Clarify the package description and add pub.dev topics for discoverability.
+
 ### Fixed
 
 - Stop the session and preserve completed progress when hot retries are exhausted, so the unfinished case can be resumed instead of silently omitted from a completed run.
 - Treat end-of-input as save-and-quit, preserving partial review results and resumable progress instead of repeatedly prompting after EOF.
+- Use the same Dart SDK for CI and publishing, validate the package before creating a release, and fail the release workflow if publishing fails.
 
 ## [1.0.0] - 2026-03-21
 

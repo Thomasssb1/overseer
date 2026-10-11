@@ -1,7 +1,14 @@
 name: overseer
-description: A human-in-the-loop testing framework for manually verifying backend artifacts like videos, audio, and AI output.
+description: >-
+  Human-in-the-loop testing for generated media and AI output, with YAML matrices,
+  interactive checklists, resumable reviews, and Markdown reports.
 version: 1.0.1
 repository: https://github.com/Thomasssb1/overseer
+topics:
+  - testing
+  - human-in-the-loop
+  - cli
+  - ai
 
 environment:
   sdk: "^3.3.0"

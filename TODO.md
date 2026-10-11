@@ -3,7 +3,7 @@
 ## Package Distribution & Layout
 
 - [ ] **Standardize Example**: Rename `example/example_runner.dart` to `example/overseer_example.dart` (or `example/example.dart`). According to Dart's [package layout conventions](https://dart.dev/tools/pub/package-layout#examples), `pub.dev` specifically looks for `example/example.dart` or a file matching the package name to automatically populate the **Example** tab online!
-- [ ] **Refine Pubspec**: Improve package tags and description on `pub.dev`.
+- [x] **Refine Pubspec**: Improve package topics and description on `pub.dev`.
 
 ## Core Features & Enhancements
 
