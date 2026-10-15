@@ -1,0 +1,223 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v1.json",
+  "title": "Overseer review report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "generated_at",
+    "commit_sha",
+    "matrix",
+    "expected_case_count",
+    "completed_case_count",
+    "complete",
+    "successful",
+    "summary",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v1.json",
+      "description": "Identifies the versioned Overseer report schema."
+    },
+    "schema_version": {
+      "const": 1,
+      "description": "Report format version; consumers must support this version."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC time when this report was written."
+    },
+    "commit_sha": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$",
+      "description": "Reviewed source revision, or null when unavailable."
+    },
+    "matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path supplied for the reviewed matrix file."
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase SHA-256 of the exact matrix file bytes, including line endings."
+        }
+      },
+      "description": "Identity of the matrix captured before generation."
+    },
+    "expected_case_count": {
+      "$ref": "#/definitions/count",
+      "description": "Number of cases expanded from the matrix, including unreviewed cases."
+    },
+    "completed_case_count": {
+      "$ref": "#/definitions/count",
+      "description": "Number of fully reviewed cases, including failed or skipped reviews."
+    },
+    "complete": {
+      "type": "boolean",
+      "description": "Whether every expected case has a completed review."
+    },
+    "successful": {
+      "type": "boolean",
+      "description": "True only for a nonempty matrix whose cases and checklist items all passed."
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "failed",
+        "skipped",
+        "error",
+        "pending"
+      ],
+      "properties": {
+        "passed": {
+          "$ref": "#/definitions/count",
+          "description": "Completed cases in which every checklist item passed."
+        },
+        "failed": {
+          "$ref": "#/definitions/count",
+          "description": "Cases with at least one failed checklist item."
+        },
+        "skipped": {
+          "$ref": "#/definitions/count",
+          "description": "Cases with skipped or missing answers and no failed answers."
+        },
+        "error": {
+          "$ref": "#/definitions/count",
+          "description": "Cases stopped by a terminal generator error."
+        },
+        "pending": {
+          "$ref": "#/definitions/count",
+          "description": "Expected cases without a recorded review or terminal generator error."
+        }
+      },
+      "description": "Exclusive case counts by final status; these sum to expected_case_count."
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/case"
+      },
+      "description": "All expected cases in matrix order, including errors and pending reviews."
+    }
+  },
+  "description": "Versioned human review results. Schema validation checks structure; CI checks provenance and review policy separately.",
+  "definitions": {
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "name",
+        "params",
+        "artifact_path",
+        "retry_count",
+        "completed",
+        "status",
+        "error",
+        "checklist"
+      ],
+      "properties": {
+        "index": {
+          "$ref": "#/definitions/count",
+          "description": "Zero-based index in the expanded matrix."
+        },
+        "name": {
+          "type": "string",
+          "description": "Suite name from the matrix."
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "null"
+            ]
+          },
+          "description": "Resolved scalar parameter values for this case."
+        },
+        "artifact_path": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Generated artifact path, or null when no review result was recorded."
+        },
+        "retry_count": {
+          "$ref": "#/definitions/count",
+          "description": "Number of retries before the recorded outcome."
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Whether the reviewer finished the entire case."
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "skipped",
+            "error",
+            "pending"
+          ],
+          "description": "Exclusive outcome: failure takes precedence over skipped answers; interrupted cases cannot pass."
+        },
+        "error": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Terminal generator error message, or null."
+        },
+        "checklist": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "item",
+              "verdict"
+            ],
+            "properties": {
+              "item": {
+                "type": "string",
+                "description": "Checklist question from the matrix."
+              },
+              "verdict": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "skipped",
+                  null
+                ],
+                "description": "Recorded answer; null means no answer was recorded."
+              }
+            }
+          },
+          "description": "Checklist items in matrix order with recorded answers."
+        }
+      }
+    }
+  }
+}

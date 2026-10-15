@@ -4,7 +4,6 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'package:overseer/overseer.dart';
-import 'package:overseer/src/reporter/reporter.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -102,7 +101,7 @@ void main() {
       final content = File(path).readAsStringSync();
 
       // Summary row: total=3, passed=1, failed=1, skipped=1
-      expect(content, contains('| 3 |'));
+      expect(content, contains('| 3 | 1 | 1 | 1 |'));
       expect(content, contains('❌'));
       expect(content, contains('⏭'));
     });
@@ -169,10 +168,40 @@ void main() {
       expect(File(path).readAsStringSync(), contains('[⏭ SKIPPED]'));
     });
 
+    test('mixed pass and skipped answers are counted and labeled skipped',
+        () async {
+      reporter.record(_makeResult(verdicts: {
+        'Item A': ChecklistVerdict.pass,
+        'Item B': ChecklistVerdict.skipped,
+      }));
+      final path = await reporter.writeReport();
+      final content = File(path).readAsStringSync();
+      expect(content, contains('| 1 | 0 | 0 | 1 |'));
+      expect(content, contains('[⏭ SKIPPED]'));
+      expect(content, isNot(contains('[✅ PASS]')));
+      expect(content, contains('| Item A | ✅ |'));
+      expect(content, contains('| Item B | ⏭ |'));
+    });
+
+    test('missing checklist answers cannot pass without report context',
+        () async {
+      reporter.record(const ChecklistResult(
+        testCase: TestCase(
+            name: 'suite', index: 0, params: {}, checklist: ['A', 'B']),
+        artifactPath: 'artifact.txt',
+        verdicts: {'A': ChecklistVerdict.pass},
+      ));
+      final path = await reporter.writeReport();
+      final content = File(path).readAsStringSync();
+      expect(content, contains('| 1 | 0 | 0 | 1 |'));
+      expect(content, contains('[⏭ SKIPPED]'));
+    });
+
     test('empty verdicts map produces valid report', () async {
       reporter.record(_makeResult());
       final path = await reporter.writeReport();
       expect(File(path).existsSync(), isTrue);
+      expect(File(path).readAsStringSync(), contains('| 1 | 0 | 0 | 1 |'));
     });
 
     test('multiple writeReport() calls succeed', () async {
