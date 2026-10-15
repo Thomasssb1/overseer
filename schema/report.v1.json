@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report-v1.schema.json",
+  "$id": "https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v1.json",
   "title": "Overseer review report v1",
   "type": "object",
   "additionalProperties": false,
@@ -19,7 +19,7 @@
   ],
   "properties": {
     "$schema": {
-      "const": "https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report-v1.schema.json",
+      "const": "https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v1.json",
       "description": "Identifies the versioned Overseer report schema."
     },
     "schema_version": {

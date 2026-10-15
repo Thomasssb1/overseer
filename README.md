@@ -91,14 +91,12 @@ final runner = OverseerRunner(
 final reportPath = await runner.run();
 ```
 
-Validate a decoded report against [schema version 1](schema/report-v1.schema.json):
+Validate a decoded report against [schema version 1](schema/report.v1.json):
 
 ```dart
 final report = jsonDecode(await File(reportPath).readAsString());
 validateReport(report); // Throws ReportException for an invalid structure.
 ```
-
-Standalone executables need `schema/report-v1.schema.json` beside the executable.
 
 Reports include every expected case, review outcomes, commit SHA, and matrix SHA-256.
 `successful` requires every checklist item in every case to pass.

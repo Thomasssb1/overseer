@@ -12,7 +12,7 @@ void main() {
 
   setUp(() {
     tempDir = Directory.systemTemp.createTempSync('overseer_schema_test_');
-    schemaFile = File(p.join(tempDir.path, 'schema', 'report-v1.schema.json'));
+    schemaFile = File(p.join(tempDir.path, 'schema', 'report.v1.json'));
     schemaFile.parent.createSync();
     schemaFile.writeAsStringSync('{"type": "object"}');
   });
@@ -28,19 +28,19 @@ void main() {
     expect(jsonDecode(schema), {'type': 'object'});
   });
 
-  test('uses a schema sidecar when package resolution is unavailable', () {
-    final schema = loadReportSchema(
-        resolvePackageUri: (_) => null,
-        executableUri: File(p.join(tempDir.path, 'overseer.exe')).uri);
-    expect(jsonDecode(schema), {'type': 'object'});
+  test('reports an unresolved package descriptively', () {
+    expect(
+        () => loadReportSchema(resolvePackageUri: (_) => null),
+        throwsA(isA<ReportException>().having((e) => e.message, 'message',
+            contains('Cannot resolve the installed Overseer package'))));
   });
 
   test('reports missing schema files descriptively', () {
     schemaFile.deleteSync();
     expect(
         () => loadReportSchema(
-            resolvePackageUri: (_) => null,
-            executableUri: File(p.join(tempDir.path, 'overseer.exe')).uri),
+            resolvePackageUri: (_) =>
+                File(p.join(tempDir.path, 'lib', 'overseer.dart')).uri),
         throwsA(isA<ReportException>().having((e) => e.message, 'message',
             contains('Cannot read report schema'))));
   });

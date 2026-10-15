@@ -8,17 +8,18 @@ import '../exceptions.dart';
 final reportSchema = loadReportSchema();
 final reportSchemaValidator = JsonSchema.create(reportSchema);
 
-/// Reads the installed package's schema, or a sidecar for standalone executables.
+/// Reads the schema JSON from the installed package.
 String loadReportSchema({
   Uri? Function(Uri) resolvePackageUri = Isolate.resolvePackageUriSync,
-  Uri? executableUri,
 }) {
   final libraryUri = resolvePackageUri(
     Uri.parse('package:overseer/overseer.dart'),
   );
-  final schemaUri = libraryUri?.resolve('../schema/report-v1.schema.json') ??
-      (executableUri ?? Platform.script)
-          .resolve('schema/report-v1.schema.json');
+  if (libraryUri == null) {
+    throw const ReportException(
+        'Cannot resolve the installed Overseer package.');
+  }
+  final schemaUri = libraryUri.resolve('../schema/report.v1.json');
   if (!schemaUri.isScheme('file')) {
     throw ReportException('Report schema must be a local file: $schemaUri');
   }

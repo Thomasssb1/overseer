@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Count and label mixed pass/skipped and incomplete Markdown reviews as skipped, using the same review status rules as JSON.
 - Bind resumable progress to the matrix contents and commit so stale reviews cannot be attributed to a different source revision or matrix.
 - Preserve completed progress if writing the final report fails.
 

@@ -115,6 +115,50 @@ void main() {
         {'passed': 6, 'failed': 0, 'skipped': 0, 'error': 0, 'pending': 0});
   });
 
+  test('Markdown and JSON use matching review summaries and case badges',
+      () async {
+    final answers = [
+      {'A': ChecklistVerdict.pass, 'B': ChecklistVerdict.pass},
+      {'A': ChecklistVerdict.fail, 'B': ChecklistVerdict.skipped},
+      {'A': ChecklistVerdict.pass, 'B': ChecklistVerdict.skipped},
+      {'A': ChecklistVerdict.skipped, 'B': ChecklistVerdict.skipped},
+      {'A': ChecklistVerdict.pass},
+      {'A': ChecklistVerdict.pass, 'B': ChecklistVerdict.pass},
+    ];
+    final reports = <ReportFormat, String>{};
+    for (final format in ReportFormat.values) {
+      final writer = Reporter(
+          outputDir: tempDir.path, format: format, context: reporter.context);
+      for (var i = 0; i < answers.length; i++) {
+        writer.record(result(i, answers[i]), completed: i != 5);
+      }
+      final path = await writer.writeReport();
+      reports[format] = File(path).readAsStringSync();
+    }
+    final json =
+        jsonDecode(reports[ReportFormat.json]!) as Map<String, dynamic>;
+    validateReport(json);
+    expect(json['summary'],
+        {'passed': 1, 'failed': 1, 'skipped': 4, 'error': 0, 'pending': 0});
+    final markdown = reports[ReportFormat.markdown]!;
+    expect(markdown, contains('| 6 | 1 | 1 | 4 |'));
+    final headings = RegExp(r'^### \[(.*?)\]', multiLine: true)
+        .allMatches(markdown)
+        .map((match) => match.group(1))
+        .toList();
+    expect(headings, [
+      '✅ PASS',
+      '❌ FAIL',
+      '⏭ SKIPPED',
+      '⏭ SKIPPED',
+      '⏭ SKIPPED',
+      '⏭ SKIPPED'
+    ]);
+    expect(
+        (json['cases'] as List).map((dynamic testCase) => testCase['status']),
+        ['passed', 'failed', 'skipped', 'skipped', 'skipped', 'skipped']);
+  });
+
   test('an empty session cannot report success', () async {
     final json = await readReport();
     expect(json['summary']['pending'], 6);

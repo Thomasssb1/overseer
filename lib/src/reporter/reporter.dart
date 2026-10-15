@@ -26,7 +26,7 @@ class Reporter {
 
   static const schemaVersion = 1;
   static const schemaUrl =
-      'https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report-v1.schema.json';
+      'https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v1.json';
 
   final ReportFormat format;
   final ReportContext? context;
@@ -160,14 +160,8 @@ class Reporter {
       status = 'error';
     } else if (result == null) {
       status = 'pending';
-    } else if (!result.passed) {
-      status = 'failed';
-    } else if (!completed ||
-        testCase.checklist
-            .any((item) => result.verdicts[item] == ChecklistVerdict.skipped)) {
-      status = 'skipped';
     } else {
-      status = 'passed';
+      status = _reviewStatus(result);
     }
     return {
       'index': testCase.index,
@@ -185,10 +179,22 @@ class Reporter {
     };
   }
 
+  String _reviewStatus(ChecklistResult result) {
+    if (!result.passed) return 'failed';
+    if (_incomplete.contains(result.testCase.index) ||
+        result.testCase.checklist.isEmpty ||
+        result.testCase.checklist
+            .any((item) => result.verdicts[item] != ChecklistVerdict.pass)) {
+      return 'skipped';
+    }
+    return 'passed';
+  }
+
   String _buildMarkdown(String timestamp) {
-    final passed = _results.where((r) => r.passed && !r.fullySkipped).length;
-    final failed = _results.where((r) => !r.passed).length;
-    final skipped = _results.where((r) => r.fullySkipped).length;
+    final statuses = _results.map(_reviewStatus).toList();
+    final passed = statuses.where((status) => status == 'passed').length;
+    final failed = statuses.where((status) => status == 'failed').length;
+    final skipped = statuses.where((status) => status == 'skipped').length;
     final total = _results.length;
 
     final buf = StringBuffer();
@@ -212,11 +218,11 @@ class Reporter {
     buf.writeln();
 
     for (final result in _results) {
-      final badge = result.fullySkipped
-          ? '⏭ SKIPPED'
-          : result.passed
-              ? '✅ PASS'
-              : '❌ FAIL';
+      final badge = switch (_reviewStatus(result)) {
+        'passed' => '✅ PASS',
+        'failed' => '❌ FAIL',
+        _ => '⏭ SKIPPED',
+      };
 
       buf.writeln('### [$badge] ${result.testCase.label}');
       buf.writeln();
