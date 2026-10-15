@@ -24,9 +24,9 @@ class Reporter {
     }
   }
 
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
   static const schemaUrl =
-      'https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v1.json';
+      'https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v2.json';
 
   final ReportFormat format;
   final ReportContext? context;
