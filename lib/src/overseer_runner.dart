@@ -6,7 +6,7 @@ import 'interactive_prompter/prompt_outcome.dart';
 import 'lock_file/lock_file.dart';
 import 'matrix_engine/matrix_engine.dart';
 import 'models.dart';
-import 'reporter/reporter.dart';
+import 'reporter.dart';
 
 export 'exceptions.dart';
 export 'execution_wrapper/execution_wrapper.dart'
@@ -19,7 +19,7 @@ export 'lock_file/lock_file.dart' show LockFile;
 export 'matrix_engine/matrix_engine.dart' show MatrixEngine;
 export 'matrix_engine/matrix_mode.dart' show MatrixMode;
 export 'models.dart';
-export 'reporter/reporter.dart' show Reporter;
+export 'reporter.dart';
 
 /// Top-level orchestrator that wires all four components together.
 ///
@@ -39,6 +39,8 @@ class OverseerRunner {
     required this.generator,
     this.outputDir,
     this.autoOpen = true,
+    this.reportFormat = ReportFormat.markdown,
+    this.commitSha,
     int maxRetries = 5,
     this.reader,
     this.printer,
@@ -57,6 +59,12 @@ class OverseerRunner {
   /// Whether to auto-open artifacts with the OS default application.
   final bool autoOpen;
 
+  /// Selects Markdown (default) or a machine-readable JSON report.
+  final ReportFormat reportFormat;
+
+  /// Source revision override. Otherwise uses GITHUB_SHA, then Git HEAD.
+  final String? commitSha;
+
   final int _maxRetries;
 
   /// Optional injected reader. Overrides `stdin.readLineSync` for testing.
@@ -73,7 +81,13 @@ class OverseerRunner {
   /// Returns the path to the written report file.
   Future<String> run() async {
     final cases = MatrixEngine.load(matrixPath);
-    final reporter = Reporter(outputDir: outputDir);
+    final context = ReportContext.capture(
+      matrixPath: matrixPath,
+      cases: cases,
+      commitSha: commitSha,
+    );
+    final reporter =
+        Reporter(outputDir: outputDir, format: reportFormat, context: context);
     final prompter = InteractivePrompter(
       autoOpen: autoOpen,
       reader: reader,
@@ -85,8 +99,14 @@ class OverseerRunner {
     final lock = LockFile.tryResume(
           matrixPath: matrixPath,
           directory: outputDir,
+          matrixSha256: context.matrixSha256,
+          commitSha: context.commitSha,
         ) ??
-        LockFile.create(matrixPath: matrixPath, directory: outputDir);
+        LockFile.create(
+            matrixPath: matrixPath,
+            directory: outputDir,
+            matrixSha256: context.matrixSha256,
+            commitSha: context.commitSha);
 
     for (final pastResult in lock.results) {
       reporter.record(pastResult);
@@ -121,6 +141,7 @@ class OverseerRunner {
             continue;
           }
           _println('\x1B[33m  Skipping this case and aborting the run.\x1B[0m');
+          reporter.recordError(testCase, e, retryCount: retryCount);
           final reportPath = await reporter.writeReport();
           _println('\n\x1B[36mReport saved to: $reportPath\x1B[0m');
           // Keep the lock file so the run can be resumed.
@@ -167,7 +188,7 @@ class OverseerRunner {
                 verdicts: {...partial.verdicts, ...missing},
                 retryCount: partial.retryCount,
               );
-              reporter.record(normalized);
+              reporter.record(normalized, completed: false);
             }
             final reportPath = await reporter.writeReport();
             _println('\n\x1B[36mReport saved to: $reportPath\x1B[0m');
@@ -178,8 +199,8 @@ class OverseerRunner {
     }
 
     // All cases done — finalise.
-    lock.clear();
     final reportPath = await reporter.writeReport();
+    lock.clear();
     _println(
       '\n\x1B[32mAll ${cases.length} case(s) complete.\x1B[0m'
       '\n\x1B[36mReport: $reportPath\x1B[0m',

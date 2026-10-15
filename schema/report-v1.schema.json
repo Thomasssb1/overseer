@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report-v1.schema.json",
+  "title": "Overseer review report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["$schema", "schema_version", "generated_at", "commit_sha", "matrix", "expected_case_count", "completed_case_count", "complete", "successful", "summary", "cases"],
+  "properties": {
+    "$schema": {"const": "https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report-v1.schema.json"},
+    "schema_version": {"const": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "commit_sha": {"type": ["string", "null"], "pattern": "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$"},
+    "matrix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "expected_case_count": {"$ref": "#/$defs/count"},
+    "completed_case_count": {"$ref": "#/$defs/count"},
+    "complete": {"type": "boolean"},
+    "successful": {"type": "boolean"},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "failed", "skipped", "error", "pending"],
+      "properties": {
+        "passed": {"$ref": "#/$defs/count"},
+        "failed": {"$ref": "#/$defs/count"},
+        "skipped": {"$ref": "#/$defs/count"},
+        "error": {"$ref": "#/$defs/count"},
+        "pending": {"$ref": "#/$defs/count"}
+      }
+    },
+    "cases": {"type": "array", "items": {"$ref": "#/$defs/case"}}
+  },
+  "$defs": {
+    "count": {"type": "integer", "minimum": 0},
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "name", "params", "artifact_path", "retry_count", "completed", "status", "error", "checklist"],
+      "properties": {
+        "index": {"$ref": "#/$defs/count"},
+        "name": {"type": "string"},
+        "params": {"type": "object", "additionalProperties": {"type": ["string", "number", "boolean", "null"]}},
+        "artifact_path": {"type": ["string", "null"]},
+        "retry_count": {"$ref": "#/$defs/count"},
+        "completed": {"type": "boolean"},
+        "status": {"enum": ["passed", "failed", "skipped", "error", "pending"]},
+        "error": {"type": ["string", "null"]},
+        "checklist": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["item", "verdict"],
+            "properties": {
+              "item": {"type": "string"},
+              "verdict": {"enum": ["pass", "fail", "skipped", null]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

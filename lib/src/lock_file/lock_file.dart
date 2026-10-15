@@ -27,12 +27,16 @@ class LockFile {
     required String directory,
     required int lastCompletedIndex,
     required List<ChecklistResult> results,
+    this.matrixSha256,
+    this.commitSha,
   })  : _file = File(p.join(directory, _lockFileName)),
         _lastCompletedIndex = lastCompletedIndex,
         _results = results;
 
   final File _file;
   final String matrixPath;
+  final String? matrixSha256;
+  final String? commitSha;
   int _lastCompletedIndex;
   final List<ChecklistResult> _results;
 
@@ -50,6 +54,8 @@ class LockFile {
   factory LockFile.create({
     required String matrixPath,
     String? directory,
+    String? matrixSha256,
+    String? commitSha,
   }) {
     final dir = directory ?? Directory.current.path;
     return LockFile._(
@@ -57,6 +63,8 @@ class LockFile {
       directory: dir,
       lastCompletedIndex: -1,
       results: [],
+      matrixSha256: matrixSha256,
+      commitSha: commitSha,
     );
   }
 
@@ -64,9 +72,13 @@ class LockFile {
   ///
   /// Returns `null` if no lock file exists or the stored matrix path does not
   /// match [matrixPath] (which would mean a different run).
+  /// When [matrixSha256] is supplied, both its contents and [commitSha] must
+  /// match the stored provenance. Legacy locks without a fingerprint are ignored.
   static LockFile? tryResume({
     required String matrixPath,
     String? directory,
+    String? matrixSha256,
+    String? commitSha,
   }) {
     final dir = directory ?? Directory.current.path;
     final file = File(p.join(dir, _lockFileName));
@@ -75,6 +87,18 @@ class LockFile {
     try {
       final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
       if (json['matrixPath'] != matrixPath) return null;
+      // A fingerprinted run must never relabel legacy or stale reviews.
+      if ((matrixSha256 != null && json['matrixSha256'] != matrixSha256) ||
+          ((matrixSha256 != null || commitSha != null) &&
+              json['commitSha'] != commitSha)) {
+        return null;
+      }
+      final storedHash = json['matrixSha256'];
+      final storedCommit = json['commitSha'];
+      if ((storedHash != null && storedHash is! String) ||
+          (storedCommit != null && storedCommit is! String)) {
+        return null;
+      }
 
       final rawResults = json['results'] as List<dynamic>? ?? [];
       final restoredResults = rawResults
@@ -86,6 +110,8 @@ class LockFile {
         directory: dir,
         lastCompletedIndex: (json['lastCompletedIndex'] as num).toInt(),
         results: restoredResults,
+        matrixSha256: storedHash,
+        commitSha: storedCommit,
       );
     } catch (_) {
       // Corrupt lock file — ignore and start fresh.
@@ -123,6 +149,8 @@ class LockFile {
   void _persist() {
     final data = {
       'matrixPath': matrixPath,
+      'matrixSha256': matrixSha256,
+      'commitSha': commitSha,
       'lastCompletedIndex': _lastCompletedIndex,
       'results': _results.map(_resultToJson).toList(),
     };
@@ -144,6 +172,7 @@ class LockFile {
         'caseIndex': r.testCase.index,
         'caseName': r.testCase.name,
         'params': r.testCase.params,
+        'checklist': r.testCase.checklist,
         'artifactPath': r.artifactPath,
         'retryCount': r.retryCount,
         'verdicts': r.verdicts.map(
@@ -158,12 +187,24 @@ class LockFile {
           ChecklistVerdict.values.firstWhere((e) => e.name == v),
         ));
 
+    final rawChecklist = json['checklist'];
+    final List<String> checklist;
+    if (rawChecklist == null) {
+      // Older standalone LockFile clients did not persist the original list.
+      checklist = verdicts.keys.toList();
+    } else if (rawChecklist is List &&
+        rawChecklist.every((item) => item is String)) {
+      checklist = rawChecklist.cast<String>();
+    } else {
+      throw const FormatException('Lock checklist must be a list of strings.');
+    }
+
     return ChecklistResult(
       testCase: TestCase(
         name: json['caseName'] as String,
         index: (json['caseIndex'] as num).toInt(),
         params: json['params'] as Map<String, dynamic>,
-        checklist: verdicts.keys.toList(),
+        checklist: checklist,
       ),
       artifactPath: json['artifactPath'] as String,
       verdicts: verdicts,

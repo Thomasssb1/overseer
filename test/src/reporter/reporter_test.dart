@@ -4,7 +4,6 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'package:overseer/overseer.dart';
-import 'package:overseer/src/reporter/reporter.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers

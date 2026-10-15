@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -87,7 +88,8 @@ void main() {
       expect(lock, isNull);
     });
 
-    test('resumes with correct lastCompletedIndex and deserializes results', () {
+    test('resumes with correct lastCompletedIndex and deserializes results',
+        () {
       final original = LockFile.create(
         matrixPath: _matrixPath,
         directory: tempDir.path,
@@ -101,7 +103,7 @@ void main() {
       expect(resumed, isNotNull);
       expect(resumed!.lastCompletedIndex, 2);
       expect(resumed.results, hasLength(1));
-      
+
       final restoredResult = resumed.results.first;
       expect(restoredResult.testCase.index, 2);
       expect(restoredResult.artifactPath, '/tmp/art_2.mp4');
@@ -165,6 +167,149 @@ void main() {
       );
       // No advance() called, so no file written.
       expect(() => lock.clear(), returnsNormally);
+    });
+  });
+
+  group('LockFile provenance', () {
+    final hash = 'a' * 64;
+    final commit = 'b' * 40;
+
+    test('preserves the original checklist, including repeated items', () {
+      final original = LockFile.create(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      original.advance(
+          0,
+          ChecklistResult(
+              testCase: TestCase(
+                  name: 'suite', index: 0, params: {}, checklist: ['A', 'A']),
+              artifactPath: 'artifact',
+              verdicts: {'A': ChecklistVerdict.pass}));
+      final resumed = LockFile.tryResume(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      expect(resumed!.results.single.testCase.checklist, ['A', 'A']);
+    });
+
+    test('legacy results restore checklist items from verdicts', () {
+      final original =
+          LockFile.create(matrixPath: _matrixPath, directory: tempDir.path);
+      original.advance(0, _result(0));
+      final file = File(p.join(tempDir.path, '.overseer.lock'));
+      final data = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+      data['results'][0].remove('checklist');
+      file.writeAsStringSync(jsonEncode(data));
+      final resumed =
+          LockFile.tryResume(matrixPath: _matrixPath, directory: tempDir.path);
+      expect(resumed!.results.single.testCase.checklist, ['Item']);
+    });
+
+    test('invalid persisted checklist shapes are ignored safely', () {
+      final original =
+          LockFile.create(matrixPath: _matrixPath, directory: tempDir.path);
+      original.advance(0, _result(0));
+      final file = File(p.join(tempDir.path, '.overseer.lock'));
+      final data = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+      for (final invalid in <dynamic>[
+        {'item': 'Item'},
+        [42]
+      ]) {
+        data['results'][0]['checklist'] = invalid;
+        file.writeAsStringSync(jsonEncode(data));
+        expect(
+            LockFile.tryResume(
+                matrixPath: _matrixPath, directory: tempDir.path),
+            isNull);
+      }
+    });
+
+    test('persists and restores matching matrix and commit fingerprints', () {
+      final original = LockFile.create(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      original.advance(0, _result(0));
+      final resumed = LockFile.tryResume(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      expect(resumed, isNotNull);
+      expect(resumed!.matrixSha256, hash);
+      expect(resumed.commitSha, commit);
+      expect(resumed.results.single.testCase.index, 0);
+      expect(
+          LockFile.tryResume(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              commitSha: commit),
+          isNotNull);
+      expect(
+          LockFile.tryResume(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              commitSha: 'c' * 40),
+          isNull);
+    });
+
+    test('a known revision cannot be resumed with unknown provenance', () {
+      final original = LockFile.create(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      original.advance(0, _result(0));
+      expect(
+          LockFile.tryResume(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              matrixSha256: hash),
+          isNull);
+    });
+
+    test('an unknown revision cannot be relabeled with a known revision', () {
+      final original = LockFile.create(
+          matrixPath: _matrixPath, directory: tempDir.path, matrixSha256: hash);
+      original.advance(0, _result(0));
+      expect(
+          LockFile.tryResume(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              matrixSha256: hash),
+          isNotNull);
+      expect(
+          LockFile.tryResume(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              matrixSha256: hash,
+              commitSha: commit),
+          isNull);
+    });
+
+    test('ignores structurally invalid provenance without raw type errors', () {
+      final original = LockFile.create(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      original.advance(0, _result(0));
+      final file = File(p.join(tempDir.path, '.overseer.lock'));
+      final data = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+      for (final field in ['matrixSha256', 'commitSha']) {
+        file.writeAsStringSync(jsonEncode({
+          ...data,
+          field: ['invalid']
+        }));
+        expect(
+            LockFile.tryResume(
+                matrixPath: _matrixPath, directory: tempDir.path),
+            isNull);
+      }
     });
   });
 }
