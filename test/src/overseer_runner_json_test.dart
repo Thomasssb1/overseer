@@ -54,7 +54,10 @@ checklist:
     final path = await runner.run();
     expect(path, endsWith('.json'));
     expect(readIndex, inputs.length);
-    return jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
+    final report =
+        jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
+    validateReport(report);
+    return report;
   }
 
   test('completed JSON run includes matrix identity and every expanded case',

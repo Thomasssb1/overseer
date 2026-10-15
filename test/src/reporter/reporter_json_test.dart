@@ -47,7 +47,10 @@ void main() {
     final path = await reporter.writeReport();
     expect(p.dirname(path), p.join(tempDir.path, 'reports'));
     expect(path, endsWith('.json'));
-    return jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
+    final report =
+        jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
+    validateReport(report);
+    return report;
   }
 
   test('JSON requires expected matrix context', () {
