@@ -9,9 +9,10 @@ import 'package:overseer/src/lock_file/lock_file.dart';
 
 const _matrixPath = 'tests/my_test.matrix.yaml';
 
-ChecklistResult _result(int index) => ChecklistResult(
+ChecklistResult _result(int index, {String? matrixVersion}) => ChecklistResult(
       testCase: TestCase(
         name: 'suite',
+        matrixVersion: matrixVersion,
         index: index,
         params: {'k': 'v$index'},
         checklist: const ['Item'],
@@ -173,6 +174,110 @@ void main() {
   group('LockFile provenance', () {
     final hash = 'a' * 64;
     final commit = 'b' * 40;
+
+    test('persists and restores each case matrix version', () {
+      final original = LockFile.create(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      original.advance(0, _result(0, matrixVersion: '1.0.0'));
+      final resumed = LockFile.tryResume(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit,
+          matrixVersion: '1.0.0');
+      expect(resumed!.results.single.testCase.matrixVersion, '1.0.0');
+      expect(
+          resumed.results.single.testCase.label, contains('(version 1.0.0)'));
+      final inspected =
+          LockFile.tryResume(matrixPath: _matrixPath, directory: tempDir.path);
+      expect(inspected!.results.single.testCase.matrixVersion, '1.0.0');
+    });
+
+    test('legacy unversioned results remain resumable without a version', () {
+      final original = LockFile.create(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      original.advance(0, _result(0));
+      final resumed = LockFile.tryResume(
+          matrixPath: _matrixPath,
+          directory: tempDir.path,
+          matrixSha256: hash,
+          commitSha: commit);
+      expect(resumed!.results.single.testCase.matrixVersion, isNull);
+    });
+
+    for (final storedVersion in <String?>[null, '1.0.0']) {
+      for (final expectedVersion in <String?>[null, '1.0.0', '2.0.0']) {
+        if (storedVersion == expectedVersion) continue;
+        test('does not relabel $storedVersion results as $expectedVersion', () {
+          final original = LockFile.create(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              matrixSha256: hash);
+          original.advance(0, _result(0, matrixVersion: storedVersion));
+          expect(
+              LockFile.tryResume(
+                  matrixPath: _matrixPath,
+                  directory: tempDir.path,
+                  matrixSha256: hash,
+                  matrixVersion: expectedVersion),
+              isNull);
+        });
+      }
+    }
+
+    test('checks a supplied version even without a file fingerprint', () {
+      final original =
+          LockFile.create(matrixPath: _matrixPath, directory: tempDir.path);
+      original.advance(0, _result(0, matrixVersion: '1.0.0'));
+      expect(
+          LockFile.tryResume(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              matrixVersion: '2.0.0'),
+          isNull);
+      expect(
+          LockFile.tryResume(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              matrixVersion: '1.0.0'),
+          isNotNull);
+    });
+
+    test('checks the version of every restored case', () {
+      final original =
+          LockFile.create(matrixPath: _matrixPath, directory: tempDir.path);
+      original.advance(0, _result(0, matrixVersion: '1.0.0'));
+      original.advance(1, _result(1, matrixVersion: '2.0.0'));
+      expect(
+          LockFile.tryResume(
+              matrixPath: _matrixPath,
+              directory: tempDir.path,
+              matrixVersion: '1.0.0'),
+          isNull);
+    });
+
+    test('ignores malformed persisted versions without leaking type errors',
+        () {
+      final original =
+          LockFile.create(matrixPath: _matrixPath, directory: tempDir.path);
+      original.advance(0, _result(0));
+      final file = File(p.join(tempDir.path, '.overseer.lock'));
+      final data = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+      for (final invalid in <Object?>['', '  ', 1, false, [], {}]) {
+        data['results'][0]['matrixVersion'] = invalid;
+        file.writeAsStringSync(jsonEncode(data));
+        expect(
+            LockFile.tryResume(
+                matrixPath: _matrixPath, directory: tempDir.path),
+            isNull);
+      }
+    });
 
     test('preserves the original checklist, including repeated items', () {
       final original = LockFile.create(

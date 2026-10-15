@@ -18,6 +18,63 @@ void main() {
 
   tearDown(() => tempDir.deleteSync(recursive: true));
 
+  test('captures and snapshots the version from expanded matrix cases', () {
+    File(matrixPath).writeAsStringSync('''
+name: suite
+version: '2.0.0'
+parameters:
+  color: [red, blue]
+checklist: [Looks good]
+''');
+    final cases = MatrixEngine.load(matrixPath);
+    final context = ReportContext.capture(
+        matrixPath: matrixPath, cases: cases, commitSha: revision);
+    cases.clear();
+    File(matrixPath).writeAsStringSync('# matrix changed after capture');
+    expect(context.matrixVersion, '2.0.0');
+    expect(context.cases.map((testCase) => testCase.matrixVersion),
+        ['2.0.0', '2.0.0']);
+  });
+
+  test('unversioned and empty contexts have no version', () {
+    for (final cases in <List<TestCase>>[
+      [],
+      [
+        TestCase(name: 'suite', index: 0, params: {}, checklist: ['A'])
+      ]
+    ]) {
+      final context = ReportContext(
+          matrixPath: matrixPath, matrixSha256: 'a' * 64, cases: cases);
+      expect(context.matrixVersion, isNull);
+    }
+  });
+
+  for (final versions in <List<String?>>[
+    [''],
+    ['   '],
+    ['1.0.0', '2.0.0'],
+    ['1.0.0', null],
+    [null, '1.0.0']
+  ]) {
+    test('rejects invalid or inconsistent case versions: $versions', () {
+      expect(
+          () => ReportContext(
+                  matrixPath: matrixPath,
+                  matrixSha256: 'a' * 64,
+                  cases: [
+                    for (var i = 0; i < versions.length; i++)
+                      TestCase(
+                          name: 'suite',
+                          matrixVersion: versions[i],
+                          index: i,
+                          params: {},
+                          checklist: ['A'])
+                  ]),
+          throwsA(isA<ReportException>().having((error) => error.message,
+              'message', contains('matrix version'))));
+    });
+  }
+
   test('captures raw-byte SHA-256 and explicit commit override', () {
     final context = ReportContext.capture(
       matrixPath: matrixPath,

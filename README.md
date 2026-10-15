@@ -50,6 +50,7 @@ See the [example walkthrough](example/README.md) for retry behavior, partial rep
 
 ```yaml
 name: "video_quality_check"
+version: '1.0.0' # optional matrix revision tag
 parameters:
   resolution: [720, 1080]
   bitrate: [low, high]
@@ -62,6 +63,9 @@ checklist:
 
 `mode: permutations` produces the cartesian product of all parameter lists (4 cases above).  
 `mode: list` zips parameter lists row-by-row (all lists must be the same length).
+
+Add an optional quoted `version`, such as `'1.0.0'`, to track matrix revisions
+in prompts and reports. Update it when changing parameters or checklist items.
 
 ## CLI Shortcuts
 
@@ -91,7 +95,8 @@ final runner = OverseerRunner(
 final reportPath = await runner.run();
 ```
 
-Validate a decoded report against [schema version 1](schema/report.v1.json):
+New reports use [schema version 2](schema/report.v2.json).
+Validate a decoded report (versions 1 and 2 are supported):
 
 ```dart
 final report = jsonDecode(await File(reportPath).readAsString());

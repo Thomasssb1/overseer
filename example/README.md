@@ -13,6 +13,8 @@ dart run example/overseer_example.dart
 
 The [example matrix](tests/example.matrix.yaml) combines two model labels with
 two temperatures, producing four cases with four checklist items each.
+Its `version: '1.0.0'` tag identifies the matrix revision in prompts and reports.
+Update this tag when revising the matrix; a changed matrix starts a fresh review.
 
 ## Review a case
 

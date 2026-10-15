@@ -11,12 +11,14 @@ void main() {
   late Directory tempDir;
   late String matrixPath;
   late List<int> generated;
+  late List<String?> generatedVersions;
   final revision = 'a' * 40;
 
   setUp(() {
     tempDir = Directory.systemTemp.createTempSync('overseer_runner_json_');
     matrixPath = p.join(tempDir.path, 'test.matrix.yaml');
     generated = [];
+    generatedVersions = [];
     File(matrixPath).writeAsStringSync('''
 name: json_test
 parameters:
@@ -47,6 +49,7 @@ checklist:
       printer: (_) {},
       generator: (testCase) async {
         generated.add(testCase.index);
+        generatedVersions.add(testCase.matrixVersion);
         if (generator != null) return generator(testCase);
         return ArtifactResult(path: 'artifact_${testCase.index}.txt');
       },
@@ -73,6 +76,85 @@ checklist:
     expect(json['cases'][0]['params'], {'color': 'red'});
     expect(json['cases'][1]['params'], {'color': 'blue'});
     expect(File(p.join(tempDir.path, '.overseer.lock')).existsSync(), isFalse);
+  });
+
+  test('matrix version reaches generators, partial reports, locks, and resume',
+      () async {
+    final file = File(matrixPath);
+    file.writeAsStringSync("version: '1.0.0'\n${file.readAsStringSync()}");
+    final partial = await runJson(inputs: ['y', 'q']);
+    expect(partial['matrix']['version'], '1.0.0');
+    expect(partial['complete'], isFalse);
+    expect(generatedVersions, ['1.0.0', '1.0.0']);
+    final lock =
+        LockFile.tryResume(matrixPath: matrixPath, directory: tempDir.path);
+    expect(lock!.results.single.testCase.matrixVersion, '1.0.0');
+    generated.clear();
+    generatedVersions.clear();
+    final resumed = await runJson(inputs: ['y']);
+    expect(generated, [1]);
+    expect(generatedVersions, ['1.0.0']);
+    expect(resumed['matrix']['version'], '1.0.0');
+    expect(resumed['completed_case_count'], 2);
+    expect(resumed['successful'], isTrue);
+  });
+
+  for (final change in ['added', 'changed', 'removed', 'unchanged']) {
+    test('starts a fresh review when the matrix version is $change', () async {
+      final file = File(matrixPath);
+      final original = file.readAsStringSync();
+      file.writeAsStringSync(
+          change == 'added' ? original : "version: '1.0.0'\n$original");
+      await runJson(inputs: ['y', 'q']);
+      final String? nextVersion;
+      switch (change) {
+        case 'added':
+        case 'changed':
+          nextVersion = '2.0.0';
+          file.writeAsStringSync("version: '$nextVersion'\n$original");
+        case 'removed':
+          nextVersion = null;
+          file.writeAsStringSync(original);
+        default:
+          nextVersion = '1.0.0';
+          file.writeAsStringSync(
+              "version: '1.0.0'\n${original.replaceFirst('red', 'green')}");
+      }
+      generated.clear();
+      final json = await runJson();
+      expect(generated, [0, 1]);
+      expect(json['matrix']['version'], nextVersion);
+      expect(json['successful'], isTrue);
+    });
+  }
+
+  test('ignores locks written before matrix version tags were recognized',
+      () async {
+    final matrix = File(matrixPath);
+    matrix.writeAsStringSync("version: '1.0.0'\n${matrix.readAsStringSync()}");
+    await runJson(inputs: ['y', 'q']);
+    final lock = File(p.join(tempDir.path, '.overseer.lock'));
+    final data = jsonDecode(lock.readAsStringSync()) as Map<String, dynamic>;
+    data['results'][0].remove('matrixVersion');
+    lock.writeAsStringSync(jsonEncode(data));
+    generated.clear();
+    final json = await runJson();
+    expect(generated, [0, 1]);
+    expect(json['matrix']['version'], '1.0.0');
+    expect(json['successful'], isTrue);
+  });
+
+  test('captures version before the generator can edit the matrix', () async {
+    final file = File(matrixPath);
+    file.writeAsStringSync("version: '1.0.0'\n${file.readAsStringSync()}");
+    final json = await runJson(generator: (testCase) async {
+      file.writeAsStringSync(
+          file.readAsStringSync().replaceFirst('1.0.0', '2.0.0'));
+      return ArtifactResult(path: 'artifact');
+    });
+    expect(json['matrix']['version'], '1.0.0');
+    expect(generatedVersions, ['1.0.0', '1.0.0']);
+    expect(file.readAsStringSync(), contains("version: '2.0.0'"));
   });
 
   test('completed failed and skipped reviews do not satisfy strict policy',

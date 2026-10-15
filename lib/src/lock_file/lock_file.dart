@@ -74,11 +74,14 @@ class LockFile {
   /// match [matrixPath] (which would mean a different run).
   /// When [matrixSha256] is supplied, both its contents and [commitSha] must
   /// match the stored provenance. Legacy locks without a fingerprint are ignored.
+  /// [matrixVersion] must match every restored case when supplied, or when
+  /// checking a fingerprinted run (including an unversioned matrix).
   static LockFile? tryResume({
     required String matrixPath,
     String? directory,
     String? matrixSha256,
     String? commitSha,
+    String? matrixVersion,
   }) {
     final dir = directory ?? Directory.current.path;
     final file = File(p.join(dir, _lockFileName));
@@ -104,6 +107,11 @@ class LockFile {
       final restoredResults = rawResults
           .map((e) => _resultFromJson(e as Map<String, dynamic>))
           .toList();
+      if ((matrixSha256 != null || matrixVersion != null) &&
+          restoredResults.any(
+              (result) => result.testCase.matrixVersion != matrixVersion)) {
+        return null;
+      }
 
       return LockFile._(
         matrixPath: matrixPath,
@@ -171,6 +179,8 @@ class LockFile {
   static Map<String, dynamic> _resultToJson(ChecklistResult r) => {
         'caseIndex': r.testCase.index,
         'caseName': r.testCase.name,
+        if (r.testCase.matrixVersion != null)
+          'matrixVersion': r.testCase.matrixVersion,
         'params': r.testCase.params,
         'checklist': r.testCase.checklist,
         'artifactPath': r.artifactPath,
@@ -181,6 +191,11 @@ class LockFile {
       };
 
   static ChecklistResult _resultFromJson(Map<String, dynamic> json) {
+    final version = json['matrixVersion'];
+    if (version != null && (version is! String || version.trim().isEmpty)) {
+      throw const FormatException(
+          'Lock matrix version must be a non-empty string.');
+    }
     final rawVerdicts = json['verdicts'] as Map<String, dynamic>;
     final verdicts = rawVerdicts.map((k, v) => MapEntry(
           k,
@@ -202,6 +217,7 @@ class LockFile {
     return ChecklistResult(
       testCase: TestCase(
         name: json['caseName'] as String,
+        matrixVersion: version,
         index: (json['caseIndex'] as num).toInt(),
         params: json['params'] as Map<String, dynamic>,
         checklist: checklist,

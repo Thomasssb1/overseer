@@ -101,6 +101,7 @@ class OverseerRunner {
           directory: outputDir,
           matrixSha256: context.matrixSha256,
           commitSha: context.commitSha,
+          matrixVersion: context.matrixVersion,
         ) ??
         LockFile.create(
             matrixPath: matrixPath,

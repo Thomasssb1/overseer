@@ -5,7 +5,10 @@ import 'report_schema.dart';
 ///
 /// Commit identity, matrix identity, and review policy must be checked separately.
 void validateReport(Object? report) {
-  final result = reportSchemaValidator.validate(report, validateFormats: true);
+  final validator = report is Map && report['schema_version'] == 1
+      ? reportSchemaV1Validator
+      : reportSchemaValidator;
+  final result = validator.validate(report, validateFormats: true);
   if (!result.isValid) {
     throw ReportException('Invalid report: ${result.errors.join('; ')}');
   }

@@ -3,6 +3,37 @@ import 'package:test/test.dart';
 
 void main() {
   group('TestCase', () {
+    test('matrix version is optional for existing callers', () {
+      const testCase =
+          TestCase(name: 'suite', index: 0, params: {}, checklist: []);
+      expect(testCase.matrixVersion, isNull);
+    });
+
+    test('version appears in labels and string output', () {
+      const testCase = TestCase(
+        name: 'suite',
+        matrixVersion: 'review-2',
+        index: 0,
+        params: {'color': 'red'},
+        checklist: [],
+      );
+      expect(testCase.matrixVersion, 'review-2');
+      expect(testCase.label, 'suite (version review-2) #1 [color=red]');
+      expect(testCase.toString(),
+          'TestCase(suite (version review-2) #1 [color=red])');
+    });
+
+    test('version appears in labels without parameters', () {
+      const testCase = TestCase(
+        name: 'suite',
+        matrixVersion: '1.0.0',
+        index: 1,
+        params: {},
+        checklist: [],
+      );
+      expect(testCase.label, 'suite (version 1.0.0) #2');
+    });
+
     test('produces correct label with single parameter', () {
       const t = TestCase(
         name: 'Login Flow',

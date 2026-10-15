@@ -5,6 +5,8 @@ import 'package:overseer/overseer.dart';
 import 'package:test/test.dart';
 
 void main() {
+  const legacySchemaUrl =
+      'https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v1.json';
   late Directory tempDir;
   late Map<String, dynamic> report;
 
@@ -37,6 +39,52 @@ void main() {
     expect(() => validateReport(report), returnsNormally);
   });
 
+  test('continues to validate reports using the original v1 schema', () {
+    final legacy = {
+      ...report,
+      r'$schema': legacySchemaUrl,
+      'schema_version': 1,
+    };
+    expect(() => validateReport(legacy), returnsNormally);
+    final matrix = legacy['matrix'] as Map<String, dynamic>;
+    for (final invalid in [
+      {...matrix, 'version': '1.0.0'},
+      {...matrix, 'sha256': 'invalid'},
+      {...matrix}..remove('path'),
+    ]) {
+      expect(() => validateReport({...legacy, 'matrix': invalid}),
+          throwsA(isA<ReportException>()));
+    }
+  });
+
+  test('rejects a schema URL that does not match the declared version', () {
+    expect(() => validateReport({...report, 'schema_version': 1}),
+        throwsA(isA<ReportException>()));
+    expect(() => validateReport({...report, r'$schema': legacySchemaUrl}),
+        throwsA(isA<ReportException>()));
+  });
+
+  for (final version in <Object?>[null, 0, 3, '1', '2', true, [], {}]) {
+    test('rejects unsupported or malformed schema version: $version', () {
+      expect(() => validateReport({...report, 'schema_version': version}),
+          throwsA(isA<ReportException>()));
+    });
+  }
+
+  test('accepts an optional non-empty matrix version tag', () {
+    report['matrix']['version'] = 'review-2';
+    expect(() => validateReport(report), returnsNormally);
+    report['matrix'].remove('version');
+    expect(() => validateReport(report), returnsNormally);
+  });
+
+  for (final invalid in <Object?>[null, '', '   ', '\n\t', 1, true, [], {}]) {
+    test('rejects an invalid matrix version in a report: $invalid', () {
+      report['matrix']['version'] = invalid;
+      expect(() => validateReport(report), throwsA(isA<ReportException>()));
+    });
+  }
+
   test('loaded schema matches the report format', () {
     final schema = jsonDecode(reportSchema) as Map<String, dynamic>;
     expect(schema[r'$id'], Reporter.schemaUrl);
@@ -60,7 +108,7 @@ void main() {
 
   test('rejects unsupported versions and invalid metadata', () {
     for (final entry in <String, Object?>{
-      'schema_version': 2,
+      'schema_version': 3,
       r'$schema': 'unknown-schema',
       'generated_at': 'not a timestamp',
       'commit_sha': 'short SHA',
