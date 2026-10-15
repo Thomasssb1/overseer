@@ -12,6 +12,7 @@ import 'matrix_mode.dart';
 /// ## YAML schema
 /// ```yaml
 /// name: "video_quality_check"
+/// version: '1.0.0'  # optional matrix revision tag
 /// parameters:
 ///   resolution: [720, 1080]
 ///   bitrate: [low, high]
@@ -40,13 +41,16 @@ class MatrixEngine {
       }
 
       final name = _requireString(rawData, 'name');
+      final version = rawData.containsKey('version')
+          ? _requireString(rawData, 'version')
+          : null;
       final checklist = _requireStringList(rawData, 'checklist');
       final mode = _parseMode(rawData['mode']);
       final parameters = _parseParameters(rawData['parameters']);
 
       final cases = mode == MatrixMode.permutations
-          ? _expandPermutations(name, checklist, parameters)
-          : _expandList(name, checklist, parameters);
+          ? _expandPermutations(name, checklist, parameters, version)
+          : _expandList(name, checklist, parameters, version);
 
       return cases;
     } on YamlException catch (e) {
@@ -161,6 +165,7 @@ class MatrixEngine {
     String name,
     List<String> checklist,
     Map<String, List<dynamic>> parameters,
+    String? version,
   ) {
     // Start with one empty map and accumulate.
     var combinations = [<String, dynamic>{}];
@@ -179,6 +184,7 @@ class MatrixEngine {
       for (var i = 0; i < combinations.length; i++)
         TestCase(
           name: name,
+          matrixVersion: version,
           index: i,
           params: combinations[i],
           checklist: checklist,
@@ -191,6 +197,7 @@ class MatrixEngine {
     String name,
     List<String> checklist,
     Map<String, List<dynamic>> parameters,
+    String? version,
   ) {
     final keys = parameters.keys.toList();
     final values = parameters.values.toList();
@@ -209,6 +216,7 @@ class MatrixEngine {
       for (var r = 0; r < length; r++)
         TestCase(
           name: name,
+          matrixVersion: version,
           index: r,
           params: {for (var c = 0; c < keys.length; c++) keys[c]: values[c][r]},
           checklist: checklist,

@@ -25,6 +25,26 @@ checklist:
 
   tearDown(() => tempDir.deleteSync(recursive: true));
 
+  test('matrix version appears in terminal prompts and Markdown reports',
+      () async {
+    final file = File(matrixPath);
+    file.writeAsStringSync("version: '1.0.0'\n${file.readAsStringSync()}");
+    final output = StringBuffer();
+    final runner = OverseerRunner(
+        matrixPath: matrixPath,
+        outputDir: tempDir.path,
+        autoOpen: false,
+        reader: () => 'y',
+        printer: output.write,
+        generator: (testCase) async => ArtifactResult(path: 'artifact'));
+    final path = await runner.run();
+    final report = File(path).readAsStringSync();
+    expect(output.toString(), contains('integration_test (version 1.0.0)'));
+    expect(report, contains('**Matrix version:** 1.0.0'));
+    expect(report, contains('integration_test (version 1.0.0) #1'));
+    expect(report, contains('integration_test (version 1.0.0) #2'));
+  });
+
   group('EOF', () {
     setUp(() {
       File(matrixPath).writeAsStringSync('''

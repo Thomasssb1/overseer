@@ -21,6 +21,7 @@ class ReportContext {
           for (final testCase in cases)
             TestCase(
               name: testCase.name,
+              matrixVersion: testCase.matrixVersion,
               index: testCase.index,
               params: Map.unmodifiable(testCase.params),
               checklist: List.unmodifiable(testCase.checklist),
@@ -34,6 +35,12 @@ class ReportContext {
       throw const ReportException('Commit SHA must be a full Git object ID.');
     }
     for (var i = 0; i < cases.length; i++) {
+      final version = cases[i].matrixVersion;
+      if ((version != null && version.trim().isEmpty) ||
+          version != matrixVersion) {
+        throw const ReportException(
+            'Expected cases must share the same non-empty matrix version, or all omit it.');
+      }
       if (cases[i].index != i) {
         throw const ReportException(
             'Expected cases must have consecutive zero-based indices.');
@@ -100,6 +107,10 @@ class ReportContext {
 
   final String matrixPath;
   final String matrixSha256;
+
+  /// The optional revision tag shared by the captured matrix cases.
+  String? get matrixVersion => cases.isEmpty ? null : cases.first.matrixVersion;
+
   final String? commitSha;
   final List<TestCase> cases;
 }

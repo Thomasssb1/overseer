@@ -24,6 +24,81 @@ void main() {
       return file.path;
     }
 
+    for (final mode in ['list', 'permutations']) {
+      for (final version in ['1.0.0', 'review-2026-10', '1']) {
+        test('preserves version $version on every case in $mode mode', () {
+          final path = createYamlFile('''
+name: versioned_test
+version: '$version'
+mode: $mode
+parameters:
+  size: [small, large]
+  color: [red, blue]
+checklist: [Looks good]
+''');
+          final cases = MatrixEngine.load(path);
+          expect(cases, hasLength(mode == 'list' ? 2 : 4));
+          expect(cases.every((testCase) => testCase.matrixVersion == version),
+              isTrue);
+        });
+      }
+    }
+
+    test('omitted version remains null for existing matrices', () {
+      final path = createYamlFile('''
+name: unversioned_test
+parameters:
+  size: [small, large]
+checklist: [Looks good]
+''');
+      expect(MatrixEngine.load(path).map((testCase) => testCase.matrixVersion),
+          everyElement(isNull));
+    });
+
+    for (final invalid in [
+      'null',
+      '~',
+      '',
+      "''",
+      "'   '",
+      '1',
+      '1.5',
+      'true',
+      '[1.0.0]',
+      '{tag: 1.0.0}'
+    ]) {
+      test('rejects invalid version YAML: $invalid', () {
+        final path = createYamlFile('''
+name: invalid_version_test
+version: $invalid
+parameters:
+  size: [small]
+checklist: [Looks good]
+''');
+        expect(
+            () => MatrixEngine.load(path),
+            throwsA(isA<MatrixParseException>().having(
+                (error) => error.message, 'message', contains('version'))));
+      });
+    }
+
+    test('versioned list matrices still reject mismatched parameter lengths',
+        () {
+      final path = createYamlFile('''
+name: versioned_test
+version: '2.0.0'
+mode: list
+parameters:
+  size: [small, large]
+  color: [red]
+checklist: [Looks good]
+''');
+      expect(
+          () => MatrixEngine.load(path),
+          throwsA(isA<MatrixParseException>().having(
+              (error) => error.message, 'message', contains('same length'))));
+    });
+
     test('throws MatrixParseException if file does not exist', () {
       expect(
         () => MatrixEngine.load('non_existent.yaml'),

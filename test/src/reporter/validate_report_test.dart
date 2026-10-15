@@ -37,6 +37,20 @@ void main() {
     expect(() => validateReport(report), returnsNormally);
   });
 
+  test('accepts an optional non-empty matrix version tag', () {
+    report['matrix']['version'] = 'review-2';
+    expect(() => validateReport(report), returnsNormally);
+    report['matrix'].remove('version');
+    expect(() => validateReport(report), returnsNormally);
+  });
+
+  for (final invalid in <Object?>[null, '', '   ', '\n\t', 1, true, [], {}]) {
+    test('rejects an invalid matrix version in a report: $invalid', () {
+      report['matrix']['version'] = invalid;
+      expect(() => validateReport(report), throwsA(isA<ReportException>()));
+    });
+  }
+
   test('loaded schema matches the report format', () {
     final schema = jsonDecode(reportSchema) as Map<String, dynamic>;
     expect(schema[r'$id'], Reporter.schemaUrl);

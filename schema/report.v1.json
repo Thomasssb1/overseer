@@ -55,6 +55,11 @@
           "type": "string",
           "pattern": "^[a-f0-9]{64}$",
           "description": "Lowercase SHA-256 of the exact matrix file bytes, including line endings."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "\\S",
+          "description": "Optional user-defined matrix revision tag from YAML; omitted for unversioned matrices. Independent of schema_version."
         }
       },
       "description": "Identity of the matrix captured before generation."

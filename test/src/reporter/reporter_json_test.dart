@@ -58,6 +58,43 @@ void main() {
         throwsA(isA<ReportException>()));
   });
 
+  test('includes a matrix tag independently of the report schema version',
+      () async {
+    final testCase = TestCase(
+        name: 'suite',
+        matrixVersion: 'review-2',
+        index: 0,
+        params: {},
+        checklist: ['A']);
+    reporter = Reporter(
+        outputDir: tempDir.path,
+        format: ReportFormat.json,
+        context: ReportContext(
+            matrixPath: 'matrix.yaml',
+            matrixSha256: 'a' * 64,
+            cases: [testCase]));
+    final json = await readReport();
+    expect(json['matrix']['version'], 'review-2');
+    expect(json['schema_version'], Reporter.schemaVersion);
+    expect(json['cases'].single['status'], 'pending');
+  });
+
+  test('rejects recorded outcomes attributed to a different matrix version',
+      () {
+    final wrongVersion = TestCase(
+        name: cases[0].name,
+        matrixVersion: 'unexpected-version',
+        index: 0,
+        params: cases[0].params,
+        checklist: cases[0].checklist);
+    expect(
+        () => reporter.record(ChecklistResult(
+            testCase: wrongVersion, artifactPath: 'artifact', verdicts: {})),
+        throwsA(isA<ReportException>()));
+    expect(() => reporter.recordError(wrongVersion, StateError('error')),
+        throwsA(isA<ReportException>()));
+  });
+
   test('includes version, provenance, all cases, and exclusive status counts',
       () async {
     reporter.record(

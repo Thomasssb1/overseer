@@ -50,6 +50,7 @@ See the [example walkthrough](example/README.md) for retry behavior, partial rep
 
 ```yaml
 name: "video_quality_check"
+version: '1.0.0' # optional matrix revision tag
 parameters:
   resolution: [720, 1080]
   bitrate: [low, high]
@@ -62,6 +63,9 @@ checklist:
 
 `mode: permutations` produces the cartesian product of all parameter lists (4 cases above).  
 `mode: list` zips parameter lists row-by-row (all lists must be the same length).
+
+Add an optional quoted `version`, such as `'1.0.0'`, to track matrix revisions
+in prompts and reports. Update it when changing parameters or checklist items.
 
 ## CLI Shortcuts
 

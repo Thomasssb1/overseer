@@ -78,6 +78,47 @@ void main() {
   });
 
   group('Reporter – markdown content', () {
+    test('includes the captured version even before any review is recorded',
+        () async {
+      reporter = Reporter(
+          outputDir: tempDir.path,
+          context: ReportContext(
+              matrixPath: 'matrix.yaml',
+              matrixSha256: 'a' * 64,
+              cases: [
+                TestCase(
+                    name: 'suite',
+                    matrixVersion: '1.0.0',
+                    index: 0,
+                    params: {},
+                    checklist: ['A'])
+              ]));
+      final path = await reporter.writeReport();
+      expect(
+          File(path).readAsStringSync(), contains('**Matrix version:** 1.0.0'));
+    });
+
+    test('unversioned Markdown does not invent a matrix tag', () async {
+      reporter.record(_makeResult());
+      final path = await reporter.writeReport();
+      expect(File(path).readAsStringSync(), isNot(contains('Matrix version')));
+    });
+
+    test('standalone Markdown retains each recorded case version', () async {
+      reporter.record(const ChecklistResult(
+          testCase: TestCase(
+              name: 'suite',
+              matrixVersion: 'review-2',
+              index: 0,
+              params: {},
+              checklist: ['A']),
+          artifactPath: 'artifact',
+          verdicts: {'A': ChecklistVerdict.pass}));
+      final path = await reporter.writeReport();
+      expect(
+          File(path).readAsStringSync(), contains('suite (version review-2)'));
+    });
+
     test('summary totals are correct for mixed results', () async {
       reporter.record(_makeResult(
         verdicts: {

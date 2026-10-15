@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Optional matrix `version` tags, preserved in generated cases, terminal labels, Markdown and JSON reports, and resumable results. Invalid tags fail with a descriptive matrix parse error.
 - Opt-in JSON reports with a versioned JSON schema, commit SHA, matrix SHA-256, expected and completed case counts, strict pass policy, and all case outcomes for CI validation, including partial reviews and generator errors.
 - A `validateReport` helper backed by `json_schema` for validating report structure.
 

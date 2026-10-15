@@ -99,6 +99,7 @@ class Reporter {
     }
     final original = expected[index];
     if (original.name != testCase.name ||
+        original.matrixVersion != testCase.matrixVersion ||
         original.params.length != testCase.params.length ||
         original.params.entries.any((e) =>
             !testCase.params.containsKey(e.key) ||
@@ -137,7 +138,9 @@ class Reporter {
       'commit_sha': reportContext.commitSha,
       'matrix': {
         'path': reportContext.matrixPath,
-        'sha256': reportContext.matrixSha256
+        'sha256': reportContext.matrixSha256,
+        if (reportContext.matrixVersion != null)
+          'version': reportContext.matrixVersion,
       },
       'expected_case_count': cases.length,
       'completed_case_count': completed,
@@ -203,6 +206,9 @@ class Reporter {
     buf.writeln('# Overseer Test Report');
     buf.writeln();
     buf.writeln('**Generated:** $timestamp');
+    if (context?.matrixVersion != null) {
+      buf.writeln('**Matrix version:** ${context!.matrixVersion}');
+    }
     buf.writeln();
 
     // Summary table
