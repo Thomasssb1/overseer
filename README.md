@@ -38,14 +38,13 @@ dart pub get
 dart run example/overseer_example.dart
 ```
 
-This self-contained demo writes text artifacts for four parameter combinations
-and walks you through reviewing them. No API keys or external services are needed.
-Open each displayed artifact path manually; use `r` to regenerate or `q` to save
-and quit. Run the same command again to resume at the first unfinished case.
+This self-contained demo writes text artifacts for four parameter combinations and walks you through reviewing them.
+No API keys or external services are needed.
+Open each displayed artifact path manually; use `r` to regenerate or `q` to save and quit.
+Run the same command again to resume at the first unfinished case.
 
-Reports are saved under `example/output/reports/`. See the
-[example walkthrough](example/README.md) for retry behavior, partial reports,
-resume details, and adapting the generator.
+Reports are saved under `example/output/reports/`.
+See the [example walkthrough](example/README.md) for retry behavior, partial reports, resume details, and adapting the generator.
 
 ## Matrix YAML
 
@@ -99,11 +98,12 @@ final report = jsonDecode(await File(reportPath).readAsString());
 validateReport(report); // Throws ReportException for an invalid structure.
 ```
 
-Reports include every expected case, review outcomes, commit SHA, and matrix
-SHA-256. `successful` requires every checklist item in every case to pass.
-CI should also compare the commit SHA, matrix hash, and expected case count with
-the checkout being tested. Field descriptions are in the schema.
+Standalone executables need `schema/report-v1.schema.json` beside the executable.
 
-The commit SHA comes from `commitSha`, then `GITHUB_SHA`, then Git HEAD; it is
-`null` if unavailable. Resume requires matching commit and matrix provenance,
-so older lock files start a fresh review.
+Reports include every expected case, review outcomes, commit SHA, and matrix SHA-256.
+`successful` requires every checklist item in every case to pass.
+CI should also compare the commit SHA, matrix hash, and expected case count with the checkout being tested.
+Field descriptions are in the schema.
+
+The commit SHA comes from `commitSha`, then `GITHUB_SHA`, then Git HEAD; it is `null` if unavailable.
+Resume requires matching commit and matrix provenance, so older lock files start a fresh review.

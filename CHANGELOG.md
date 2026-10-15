@@ -9,15 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Opt-in JSON reports with a versioned JSON schema, commit SHA, matrix SHA-256,
-  expected and completed case counts, strict pass policy, and all case outcomes
-  for CI validation, including partial reviews and generator errors.
+- Opt-in JSON reports with a versioned JSON schema, commit SHA, matrix SHA-256, expected and completed case counts, strict pass policy, and all case outcomes for CI validation, including partial reviews and generator errors.
 - A `validateReport` helper backed by `json_schema` for validating report structure.
 
 ### Fixed
 
-- Bind resumable progress to the matrix contents and commit so stale reviews
-  cannot be attributed to a different source revision or matrix.
+- Bind resumable progress to the matrix contents and commit so stale reviews cannot be attributed to a different source revision or matrix.
 - Preserve completed progress if writing the final report fails.
 
 ## [1.0.1] - 2026-10-11
