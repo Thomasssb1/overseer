@@ -9,7 +9,7 @@ final reportSchema = loadReportSchema();
 final reportSchemaValidator = JsonSchema.create(reportSchema);
 final reportSchemaV1Validator = JsonSchema.create(loadReportSchema(version: 1));
 
-/// Reads a supported schema version from the installed package; defaults to v2.
+/// Reads the schema JSON from the installed package.
 String loadReportSchema({
   int version = 2,
   Uri? Function(Uri) resolvePackageUri = Isolate.resolvePackageUriSync,
