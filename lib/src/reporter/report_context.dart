@@ -4,6 +4,11 @@ import 'package:crypto/crypto.dart';
 
 import '../exceptions.dart';
 import '../models.dart';
+import 'report_schema.dart';
+
+final _matrixHashSchema =
+    reportSchemaValidator.properties['matrix']!.properties['sha256']!;
+final _commitShaSchema = reportSchemaValidator.properties['commit_sha']!;
 
 /// The matrix and source revision captured before generation starts.
 class ReportContext {
@@ -21,13 +26,11 @@ class ReportContext {
               checklist: List.unmodifiable(testCase.checklist),
             ),
         ]) {
-    if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(matrixSha256)) {
+    if (!_matrixHashSchema.validate(matrixSha256).isValid) {
       throw const ReportException(
           'Matrix SHA-256 must be 64 lowercase hex digits.');
     }
-    if (commitSha != null &&
-        !RegExp(r'^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$')
-            .hasMatch(commitSha!)) {
+    if (!_commitShaSchema.validate(commitSha).isValid) {
       throw const ReportException('Commit SHA must be a full Git object ID.');
     }
     for (var i = 0; i < cases.length; i++) {

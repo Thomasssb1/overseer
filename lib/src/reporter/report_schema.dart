@@ -1,3 +1,8 @@
+import 'package:json_schema/json_schema.dart';
+
+/// Compiled once for full-report and individual-field validation.
+final reportSchemaValidator = JsonSchema.create(reportSchema);
+
 /// The version 1 report schema, bundled for offline validation.
 const reportSchema = r'''
 {

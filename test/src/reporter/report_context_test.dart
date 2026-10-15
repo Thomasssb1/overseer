@@ -104,6 +104,51 @@ void main() {
         throwsA(isA<ReportException>()));
   });
 
+  for (final invalidHash in ['', 'a' * 63, 'a' * 65, 'g' * 64, 'A' * 64]) {
+    test('rejects a matrix hash outside the schema: $invalidHash', () {
+      expect(
+          () => ReportContext(
+              matrixPath: matrixPath, matrixSha256: invalidHash, cases: []),
+          throwsA(isA<ReportException>()));
+    });
+  }
+
+  for (final commit in <String?>[
+    null,
+    'a' * 40,
+    'A' * 40,
+    'b' * 64,
+    'B' * 64
+  ]) {
+    test('accepts a commit ID allowed by the schema: $commit', () {
+      final context = ReportContext(
+          matrixPath: matrixPath,
+          matrixSha256: 'a' * 64,
+          commitSha: commit,
+          cases: []);
+      expect(context.commitSha, commit);
+    });
+  }
+
+  for (final invalidCommit in [
+    '',
+    'a' * 39,
+    'a' * 41,
+    'b' * 63,
+    'b' * 65,
+    'g' * 40
+  ]) {
+    test('rejects a commit ID outside the schema: $invalidCommit', () {
+      expect(
+          () => ReportContext(
+              matrixPath: matrixPath,
+              matrixSha256: 'a' * 64,
+              commitSha: invalidCommit,
+              cases: []),
+          throwsA(isA<ReportException>()));
+    });
+  }
+
   test('snapshots the expected matrix against later mutation', () {
     final params = <String, dynamic>{'color': 'red'};
     final checklist = ['A'];
