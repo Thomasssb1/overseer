@@ -50,6 +50,7 @@ void main() {
     final report =
         jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
     validateReport(report);
+    expect(report['overseer_version'], overseerVersion);
     return report;
   }
 
@@ -109,8 +110,8 @@ void main() {
         retryCount: 3);
     final json = await readReport();
     expect(json[r'$schema'], Reporter.schemaUrl);
-    expect(json['schema_version'], 2);
-    expect(json[r'$schema'], endsWith('/report.v2.json'));
+    expect(json['schema_version'], 3);
+    expect(json[r'$schema'], endsWith('/report.v3.json'));
     expect(DateTime.parse(json['generated_at'] as String).isUtc, isTrue);
     expect(json['commit_sha'], 'b' * 40);
     expect(json['matrix'], {'path': 'matrix.yaml', 'sha256': 'a' * 64});

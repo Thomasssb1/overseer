@@ -44,7 +44,7 @@ void main() {
       ...report,
       r'$schema': legacySchemaUrl,
       'schema_version': 1,
-    };
+    }..remove('overseer_version');
     expect(() => validateReport(legacy), returnsNormally);
     final matrix = legacy['matrix'] as Map<String, dynamic>;
     for (final invalid in [
@@ -57,6 +57,22 @@ void main() {
     }
   });
 
+  test('continues to validate v2 reports without an Overseer version', () {
+    final legacy = {
+      ...report,
+      r'$schema':
+          'https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v2.json',
+      'schema_version': 2,
+    }..remove('overseer_version');
+    legacy['matrix']['version'] = 'review-2';
+    expect(() => validateReport(legacy), returnsNormally);
+    expect(
+        () => validateReport({...legacy, 'overseer_version': overseerVersion}),
+        throwsA(isA<ReportException>()));
+    expect(() => validateReport({...legacy, 'commit_sha': 'invalid'}),
+        throwsA(isA<ReportException>()));
+  });
+
   test('rejects a schema URL that does not match the declared version', () {
     expect(() => validateReport({...report, 'schema_version': 1}),
         throwsA(isA<ReportException>()));
@@ -64,7 +80,7 @@ void main() {
         throwsA(isA<ReportException>()));
   });
 
-  for (final version in <Object?>[null, 0, 3, '1', '2', true, [], {}]) {
+  for (final version in <Object?>[null, 0, 4, '1', '2', '3', true, [], {}]) {
     test('rejects unsupported or malformed schema version: $version', () {
       expect(() => validateReport({...report, 'schema_version': version}),
           throwsA(isA<ReportException>()));
@@ -81,6 +97,13 @@ void main() {
   for (final invalid in <Object?>[null, '', '   ', '\n\t', 1, true, [], {}]) {
     test('rejects an invalid matrix version in a report: $invalid', () {
       report['matrix']['version'] = invalid;
+      expect(() => validateReport(report), throwsA(isA<ReportException>()));
+    });
+  }
+
+  for (final invalid in <Object?>[null, '', '   ', '\n\t', 1, true, [], {}]) {
+    test('rejects an invalid Overseer version in a report: $invalid', () {
+      report['overseer_version'] = invalid;
       expect(() => validateReport(report), throwsA(isA<ReportException>()));
     });
   }
@@ -108,7 +131,7 @@ void main() {
 
   test('rejects unsupported versions and invalid metadata', () {
     for (final entry in <String, Object?>{
-      'schema_version': 3,
+      'schema_version': 4,
       r'$schema': 'unknown-schema',
       'generated_at': 'not a timestamp',
       'commit_sha': 'short SHA',

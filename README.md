@@ -81,6 +81,12 @@ in prompts and reports. Update it when changing parameters or checklist items.
 
 A Markdown report is written to `reports/overseer_report_<timestamp>.md` at the end of the run (or on quit).
 
+Both report formats include the generating Overseer package version, the tested
+Git commit SHA, and the matrix version when one is supplied. These values also
+appear in partial reports. The package version is compiled into the library and
+exported as `overseerVersion`; it is separate from the report schema version and
+the matrix's revision tag.
+
 ### JSON reports for CI
 
 Select JSON when creating the runner. `run()` returns the `.json` report path:
@@ -95,8 +101,8 @@ final runner = OverseerRunner(
 final reportPath = await runner.run();
 ```
 
-New reports use [schema version 2](schema/report.v2.json).
-Validate a decoded report (versions 1 and 2 are supported):
+New reports use [schema version 3](schema/report.v3.json), which requires
+`overseer_version`. Validate a decoded report (versions 1, 2, and 3 are supported):
 
 ```dart
 final report = jsonDecode(await File(reportPath).readAsString());
@@ -108,5 +114,11 @@ Reports include every expected case, review outcomes, commit SHA, and matrix SHA
 CI should also compare the commit SHA, matrix hash, and expected case count with the checkout being tested.
 Field descriptions are in the schema.
 
-The commit SHA comes from `commitSha`, then `GITHUB_SHA`, then Git HEAD; it is `null` if unavailable.
+The commit SHA is captured before generation from `commitSha`, then `GITHUB_SHA`,
+then Git HEAD in the matrix's directory. It is `null` in JSON or `unavailable` in
+Markdown if no revision can be resolved. A standalone `Reporter` needs a
+`ReportContext` to include the tested revision.
 Resume requires matching commit and matrix provenance, so older lock files start a fresh review.
+
+When releasing Overseer, update `lib/src/version.dart` alongside the version in
+`pubspec.yaml`; the test suite checks that they match.

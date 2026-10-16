@@ -13,7 +13,7 @@ void main() {
 
   setUp(() {
     tempDir = Directory.systemTemp.createTempSync('overseer_schema_test_');
-    schemaFile = File(p.join(tempDir.path, 'schema', 'report.v2.json'));
+    schemaFile = File(p.join(tempDir.path, 'schema', 'report.v3.json'));
     schemaFile.parent.createSync();
     schemaFile.writeAsStringSync('{"type": "object"}');
   });
@@ -29,19 +29,22 @@ void main() {
     expect(jsonDecode(schema), {'type': 'object'});
   });
 
-  test('can still load v1 separately from the current schema', () {
-    final legacyFile = File(p.join(tempDir.path, 'schema', 'report.v1.json'));
-    legacyFile.writeAsStringSync('{"title": "legacy"}');
-    final libraryUri = File(p.join(tempDir.path, 'lib', 'overseer.dart')).uri;
-    expect(
-        jsonDecode(
-            loadReportSchema(version: 1, resolvePackageUri: (_) => libraryUri)),
-        {'title': 'legacy'});
-    expect(jsonDecode(loadReportSchema(resolvePackageUri: (_) => libraryUri)),
-        {'type': 'object'});
-  });
+  for (final version in [1, 2]) {
+    test('can still load v$version separately from the current schema', () {
+      final legacyFile =
+          File(p.join(tempDir.path, 'schema', 'report.v$version.json'));
+      legacyFile.writeAsStringSync('{"title": "legacy"}');
+      final libraryUri = File(p.join(tempDir.path, 'lib', 'overseer.dart')).uri;
+      expect(
+          jsonDecode(loadReportSchema(
+              version: version, resolvePackageUri: (_) => libraryUri)),
+          {'title': 'legacy'});
+      expect(jsonDecode(loadReportSchema(resolvePackageUri: (_) => libraryUri)),
+          {'type': 'object'});
+    });
+  }
 
-  for (final version in [-1, 0, 3]) {
+  for (final version in [-1, 0, 4]) {
     test('rejects unsupported schema version $version', () {
       expect(
           () => loadReportSchema(version: version),
@@ -53,7 +56,7 @@ void main() {
   test('preserves the strict v1 matrix shape and adds version tags only in v2',
       () {
     final legacy = jsonDecode(loadReportSchema(version: 1)) as Map;
-    final current = jsonDecode(reportSchema) as Map;
+    final current = jsonDecode(loadReportSchema(version: 2)) as Map;
     expect(legacy[r'$id'], endsWith('/report.v1.json'));
     expect(legacy['properties']['schema_version']['const'], 1);
     expect(legacy['properties']['matrix']['additionalProperties'], isFalse);
@@ -70,6 +73,18 @@ void main() {
         isFalse);
     expect(currentMatrix.validate({...matrix, 'version': '1.0.0'}).isValid,
         isTrue);
+  });
+
+  test('only v3 defines and requires the generating Overseer version', () {
+    for (final version in [1, 2, 3]) {
+      final schema = jsonDecode(loadReportSchema(version: version)) as Map;
+      expect(schema[r'$id'], endsWith('/report.v$version.json'));
+      expect(schema['properties']['schema_version']['const'], version);
+      expect((schema['properties'] as Map).containsKey('overseer_version'),
+          version == 3);
+      expect((schema['required'] as List).contains('overseer_version'),
+          version == 3);
+    }
   });
 
   test('reports an unresolved package descriptively', () {
