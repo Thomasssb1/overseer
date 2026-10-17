@@ -113,6 +113,3 @@ then Git HEAD in the matrix's directory. It is `null` in JSON or `unavailable` i
 Markdown if no revision can be resolved. A standalone `Reporter` needs a
 `ReportContext` to include the tested revision.
 Resume requires matching commit and matrix provenance, so older lock files start a fresh review.
-
-When releasing Overseer, update `lib/src/version.dart` alongside the version in
-`pubspec.yaml`; the test suite checks that they match.
