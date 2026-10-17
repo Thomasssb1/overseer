@@ -95,8 +95,8 @@ final runner = OverseerRunner(
 final reportPath = await runner.run();
 ```
 
-New reports use [schema version 3](schema/report.v3.json), which requires
-`overseer_version`. Validate a decoded report (versions 1, 2, and 3 are supported):
+New reports use [schema version 3](schema/report.v3.json).
+Validate a decoded report:
 
 ```dart
 final report = jsonDecode(await File(reportPath).readAsString());
