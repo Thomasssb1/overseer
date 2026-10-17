@@ -8,13 +8,14 @@ import '../exceptions.dart';
 final reportSchema = loadReportSchema();
 final reportSchemaValidator = JsonSchema.create(reportSchema);
 final reportSchemaV1Validator = JsonSchema.create(loadReportSchema(version: 1));
+final reportSchemaV2Validator = JsonSchema.create(loadReportSchema(version: 2));
 
 /// Reads the schema JSON from the installed package.
 String loadReportSchema({
-  int version = 2,
+  int version = 3,
   Uri? Function(Uri) resolvePackageUri = Isolate.resolvePackageUriSync,
 }) {
-  if (version != 1 && version != 2) {
+  if (version != 1 && version != 2 && version != 3) {
     throw ReportException('Unsupported report schema version: $version.');
   }
   final libraryUri = resolvePackageUri(

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Overseer package version in Markdown and JSON reports, plus the tested commit SHA in Markdown, including partial reports. The `overseerVersion` value is read from the installed package's pubspec.yaml.
+- Report schema v3 requires `overseer_version`; validation of existing v1 and v2 reports is preserved.
 - Optional matrix `version` tags, preserved in generated cases, terminal labels, Markdown and JSON reports, and resumable results. Invalid tags fail with a descriptive matrix parse error.
 - Report schema v2 supports matrix version tags; the original v1 schema and validation support are preserved.
 - Opt-in JSON reports with a versioned JSON schema, commit SHA, matrix SHA-256, expected and completed case counts, strict pass policy, and all case outcomes for CI validation, including partial reviews and generator errors.

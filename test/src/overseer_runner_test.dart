@@ -33,17 +33,47 @@ checklist:
     final runner = OverseerRunner(
         matrixPath: matrixPath,
         outputDir: tempDir.path,
+        commitSha: 'a' * 40,
         autoOpen: false,
         reader: () => 'y',
         printer: output.write,
         generator: (testCase) async => ArtifactResult(path: 'artifact'));
     final path = await runner.run();
     final report = File(path).readAsStringSync();
+    expect(report, contains('**Overseer version:** $overseerVersion'));
+    expect(report, contains('**Commit SHA:** ${'a' * 40}'));
     expect(output.toString(), contains('integration_test (version 1.0.0)'));
     expect(report, contains('**Matrix version:** 1.0.0'));
     expect(report, contains('integration_test (version 1.0.0) #1'));
     expect(report, contains('integration_test (version 1.0.0) #2'));
   });
+
+  for (final ending in ['quit', 'generator error', 'retry exhaustion']) {
+    test('includes all provenance in Markdown after $ending', () async {
+      final file = File(matrixPath);
+      file.writeAsStringSync("version: 'review-2'\n${file.readAsStringSync()}");
+      final runner = OverseerRunner(
+          matrixPath: matrixPath,
+          outputDir: tempDir.path,
+          commitSha: 'b' * 40,
+          autoOpen: false,
+          maxRetries: 0,
+          reader: () => ending == 'retry exhaustion' ? 'r' : 'q',
+          printer: (_) {},
+          generator: (testCase) async {
+            // Provenance must describe the inputs at the start of the run.
+            file.writeAsStringSync('# matrix changed during generation');
+            if (ending == 'generator error') {
+              throw StateError('generation failed');
+            }
+            return ArtifactResult(path: 'artifact');
+          });
+      final report = File(await runner.run()).readAsStringSync();
+      expect(report, contains('**Overseer version:** $overseerVersion'));
+      expect(report, contains('**Commit SHA:** ${'b' * 40}'));
+      expect(report, contains('**Matrix version:** review-2'));
+    });
+  }
 
   group('EOF', () {
     setUp(() {

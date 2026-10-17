@@ -78,13 +78,14 @@ void main() {
   });
 
   group('Reporter – markdown content', () {
-    test('includes the captured version even before any review is recorded',
+    test('includes captured provenance even before any review is recorded',
         () async {
       reporter = Reporter(
           outputDir: tempDir.path,
           context: ReportContext(
               matrixPath: 'matrix.yaml',
               matrixSha256: 'a' * 64,
+              commitSha: 'b' * 40,
               cases: [
                 TestCase(
                     name: 'suite',
@@ -94,9 +95,29 @@ void main() {
                     checklist: ['A'])
               ]));
       final path = await reporter.writeReport();
-      expect(
-          File(path).readAsStringSync(), contains('**Matrix version:** 1.0.0'));
+      final content = File(path).readAsStringSync();
+      expect(content, contains('**Overseer version:** $overseerVersion'));
+      expect(content, contains('**Commit SHA:** ${'b' * 40}'));
+      expect(content, contains('**Matrix version:** 1.0.0'));
     });
+
+    for (final withContext in [false, true]) {
+      test('marks an unavailable revision explicitly with context $withContext',
+          () async {
+        reporter = Reporter(
+            outputDir: tempDir.path,
+            context: withContext
+                ? ReportContext(
+                    matrixPath: 'matrix.yaml',
+                    matrixSha256: 'a' * 64,
+                    cases: [])
+                : null);
+        final path = await reporter.writeReport();
+        final content = File(path).readAsStringSync();
+        expect(content, contains('**Overseer version:** $overseerVersion'));
+        expect(content, contains('**Commit SHA:** unavailable'));
+      });
+    }
 
     test('unversioned Markdown does not invent a matrix tag', () async {
       reporter.record(_makeResult());

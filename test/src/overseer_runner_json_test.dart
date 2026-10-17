@@ -60,6 +60,8 @@ checklist:
     final report =
         jsonDecode(File(path).readAsStringSync()) as Map<String, dynamic>;
     validateReport(report);
+    expect(report['overseer_version'], overseerVersion);
+    expect(report['commit_sha'], commitSha ?? revision);
     return report;
   }
 

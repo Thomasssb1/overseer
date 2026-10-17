@@ -95,8 +95,8 @@ final runner = OverseerRunner(
 final reportPath = await runner.run();
 ```
 
-New reports use [schema version 2](schema/report.v2.json).
-Validate a decoded report (versions 1 and 2 are supported):
+New reports use [schema version 3](schema/report.v3.json).
+Validate a decoded report:
 
 ```dart
 final report = jsonDecode(await File(reportPath).readAsString());
@@ -108,5 +108,4 @@ Reports include every expected case, review outcomes, commit SHA, and matrix SHA
 CI should also compare the commit SHA, matrix hash, and expected case count with the checkout being tested.
 Field descriptions are in the schema.
 
-The commit SHA comes from `commitSha`, then `GITHUB_SHA`, then Git HEAD; it is `null` if unavailable.
 Resume requires matching commit and matrix provenance, so older lock files start a fresh review.

@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../exceptions.dart';
 import '../models.dart';
+import '../version.dart';
 import 'report_context.dart';
 import 'report_format.dart';
 
@@ -24,14 +25,15 @@ class Reporter {
     }
   }
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
   static const schemaUrl =
-      'https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v2.json';
+      'https://raw.githubusercontent.com/Thomasssb1/overseer/main/schema/report.v3.json';
 
   final ReportFormat format;
   final ReportContext? context;
 
   final String _outputDir;
+  final String _overseerVersion = overseerVersion;
   final List<ChecklistResult> _results = [];
   final Set<int> _incomplete = {};
   final Map<int, ({String message, int retryCount})> _errors = {};
@@ -135,6 +137,7 @@ class Reporter {
       r'$schema': schemaUrl,
       'schema_version': schemaVersion,
       'generated_at': DateTime.now().toUtc().toIso8601String(),
+      'overseer_version': _overseerVersion,
       'commit_sha': reportContext.commitSha,
       'matrix': {
         'path': reportContext.matrixPath,
@@ -206,6 +209,8 @@ class Reporter {
     buf.writeln('# Overseer Test Report');
     buf.writeln();
     buf.writeln('**Generated:** $timestamp');
+    buf.writeln('**Overseer version:** $_overseerVersion');
+    buf.writeln('**Commit SHA:** ${context?.commitSha ?? 'unavailable'}');
     if (context?.matrixVersion != null) {
       buf.writeln('**Matrix version:** ${context!.matrixVersion}');
     }
