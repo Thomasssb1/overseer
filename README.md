@@ -81,12 +81,6 @@ in prompts and reports. Update it when changing parameters or checklist items.
 
 A Markdown report is written to `reports/overseer_report_<timestamp>.md` at the end of the run (or on quit).
 
-Both report formats include the generating Overseer package version, the tested
-Git commit SHA, and the matrix version when one is supplied. These values also
-appear in partial reports. The package version is compiled into the library and
-exported as `overseerVersion`; it is separate from the report schema version and
-the matrix's revision tag.
-
 ### JSON reports for CI
 
 Select JSON when creating the runner. `run()` returns the `.json` report path:
