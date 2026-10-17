@@ -108,8 +108,4 @@ Reports include every expected case, review outcomes, commit SHA, and matrix SHA
 CI should also compare the commit SHA, matrix hash, and expected case count with the checkout being tested.
 Field descriptions are in the schema.
 
-The commit SHA is captured before generation from `commitSha`, then `GITHUB_SHA`,
-then Git HEAD in the matrix's directory. It is `null` in JSON or `unavailable` in
-Markdown if no revision can be resolved. A standalone `Reporter` needs a
-`ReportContext` to include the tested revision.
 Resume requires matching commit and matrix provenance, so older lock files start a fresh review.
