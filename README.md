@@ -8,6 +8,7 @@ A Dart human-in-the-loop (HitL) testing framework for manually verifying backend
 - **Execution Wrapper** - pass each parameter set to your custom generation logic.
 - **Interactive Prompter** - auto-opens the artifact, walks you through a checklist, supports hot-retry (`r`) and save-and-quit (`q`).
 - **Reporter** - compiles your answers into a Markdown or versioned JSON test report.
+- **Verify** - checks JSON reports against a matrix, commit SHA, and review policy for CI gates.
 - **Resume / Lock File** - quit at any point and pick up exactly where you left off.
 
 ## Quick Start
@@ -105,7 +106,64 @@ validateReport(report); // Throws ReportException for an invalid structure.
 
 Reports include every expected case, review outcomes, commit SHA, and matrix SHA-256.
 `successful` requires every checklist item in every case to pass.
-CI should also compare the commit SHA, matrix hash, and expected case count with the checkout being tested.
+Use `overseer verify` to compare the report with the checkout being tested.
 Field descriptions are in the schema.
 
 Resume requires matching commit and matrix provenance, so older lock files start a fresh review.
+
+### Verify a report in CI
+
+Run the non-interactive validator from a project that depends on Overseer:
+
+```sh
+dart run overseer verify --report reports/review.json --matrix tests/my_test.matrix.yaml --expected-sha "$GITHUB_SHA" > verification.json
+```
+
+Alternatively, `dart pub global activate overseer` installs the `overseer`
+executable, which accepts the same `verify` command and options.
+
+`--report`, `--matrix`, and `--expected-sha` are required. Supply the full Git
+commit SHA you expect to have been reviewed (40 or 64 hex characters).
+Verification supports report schema versions 1, 2, and 3 and checks:
+
+- Schema structure and version, commit SHA equality, and SHA-256 of the exact
+  matrix file bytes (including whitespace and line endings).
+- Every expected case appears exactly once with matching name, parameter values,
+  and ordered checklist. Report case order and checkout paths may differ.
+- Matrix version metadata matches for schemas 2 and 3. Schema 1 predates version
+  tags, so its matrix identity is checked using the byte hash.
+- Case statuses, summary counts, and completion/success flags agree with the
+  recorded outcomes. Pending cases, partial reviews, and missing answers fail.
+
+By default, all checklist verdicts must pass. Optional policy flags are:
+
+| Flag | Effect |
+| --- | --- |
+| `--allow-failures` | Allow failed checklist verdicts in fully reviewed cases. |
+| `--allow-skips` | Allow skipped checklist verdicts in fully reviewed cases. |
+| `--allow-errors` | Allow terminal generator errors without a completed review. |
+
+Flags apply independently: a case with failed and skipped answers requires both
+corresponding flags. Even with all flags enabled, pending or interrupted reviews
+fail. `--allow-errors` can accept a report with `complete: false` only when every
+unfinished case is a terminal generator error. The report's `successful` field
+always retains its original all-pass meaning, regardless of verification policy.
+
+The command exits **0** when verification passes and **1** for rejected reports
+or invalid input. A readable summary and diagnostics go to **stderr**; **stdout**
+contains one JSON result, including on failure:
+
+```json
+{
+  "valid": true,
+  "summary": "Verification passed: all 4 expected cases satisfy policy.",
+  "expected_case_count": 4,
+  "reported_case_count": 4,
+  "errors": []
+}
+```
+
+Counts are `null` when invalid inputs prevent verification. Use
+`overseer verify --help` for command help. Dart callers can use
+`verifyReport(decodedReport, matrixPath: path, expectedSha: sha)` and inspect the
+returned `VerificationResult` or its `toJson()` representation.
