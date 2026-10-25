@@ -113,57 +113,18 @@ Resume requires matching commit and matrix provenance, so older lock files start
 
 ### Verify a report in CI
 
-Run the non-interactive validator from a project that depends on Overseer:
-
 ```sh
 dart run overseer verify --report reports/review.json --matrix tests/my_test.matrix.yaml --expected-sha "$GITHUB_SHA" > verification.json
 ```
 
-Alternatively, `dart pub global activate overseer` installs the `overseer`
-executable, which accepts the same `verify` command and options.
+All three options are required; `--expected-sha` takes a full Git commit SHA.
+Verification checks schema versions 1–3, case coverage and outcomes, commit SHA,
+and the exact matrix file hash.
 
-`--report`, `--matrix`, and `--expected-sha` are required. Supply the full Git
-commit SHA you expect to have been reviewed (40 or 64 hex characters).
-Verification supports report schema versions 1, 2, and 3 and checks:
+All verdicts must pass by default. Enable `--allow-failures`, `--allow-skips`, or
+`--allow-errors` independently to allow failed verdicts, skipped verdicts, or
+terminal generator errors. Pending and interrupted reviews always fail.
 
-- Schema structure and version, commit SHA equality, and SHA-256 of the exact
-  matrix file bytes (including whitespace and line endings).
-- Every expected case appears exactly once with matching name, parameter values,
-  and ordered checklist. Report case order and checkout paths may differ.
-- Matrix version metadata matches for schemas 2 and 3. Schema 1 predates version
-  tags, so its matrix identity is checked using the byte hash.
-- Case statuses, summary counts, and completion/success flags agree with the
-  recorded outcomes. Pending cases, partial reviews, and missing answers fail.
-
-By default, all checklist verdicts must pass. Optional policy flags are:
-
-| Flag | Effect |
-| --- | --- |
-| `--allow-failures` | Allow failed checklist verdicts in fully reviewed cases. |
-| `--allow-skips` | Allow skipped checklist verdicts in fully reviewed cases. |
-| `--allow-errors` | Allow terminal generator errors without a completed review. |
-
-Flags apply independently: a case with failed and skipped answers requires both
-corresponding flags. Even with all flags enabled, pending or interrupted reviews
-fail. `--allow-errors` can accept a report with `complete: false` only when every
-unfinished case is a terminal generator error. The report's `successful` field
-always retains its original all-pass meaning, regardless of verification policy.
-
-The command exits **0** when verification passes and **1** for rejected reports
-or invalid input. A readable summary and diagnostics go to **stderr**; **stdout**
-contains one JSON result, including on failure:
-
-```json
-{
-  "valid": true,
-  "summary": "Verification passed: all 4 expected cases satisfy policy.",
-  "expected_case_count": 4,
-  "reported_case_count": 4,
-  "errors": []
-}
-```
-
-Counts are `null` when invalid inputs prevent verification. Use
-`overseer verify --help` for command help. Dart callers can use
-`verifyReport(decodedReport, matrixPath: path, expectedSha: sha)` and inspect the
-returned `VerificationResult` or its `toJson()` representation.
+JSON results go to stdout and readable diagnostics to stderr. Exit codes are
+**0** for success and **1** for invalid input or failed verification.
+Run `dart run overseer verify --help` for options.
