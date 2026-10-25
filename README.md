@@ -96,7 +96,7 @@ final runner = OverseerRunner(
 final reportPath = await runner.run();
 ```
 
-New reports use [schema version 3](schema/report.v3.json).
+Reports follow the [JSON schema](schema/report.v3.json).
 Validate a decoded report:
 
 ```dart
@@ -118,7 +118,7 @@ dart run overseer verify --report reports/review.json --matrix tests/my_test.mat
 ```
 
 All three options are required; `--expected-sha` takes a full Git commit SHA.
-Verification checks schema versions 1–3, case coverage and outcomes, commit SHA,
+Verification checks the report schema, case coverage and outcomes, commit SHA,
 and the exact matrix file hash.
 
 All verdicts must pass by default. Enable `--allow-failures`, `--allow-skips`, or

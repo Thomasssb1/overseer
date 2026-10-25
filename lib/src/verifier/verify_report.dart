@@ -5,9 +5,9 @@ import 'verification_result.dart';
 
 /// Verifies decoded JSON against the exact matrix bytes and a full Git SHA.
 ///
-/// Supports report schemas 1, 2, and 3. Structural errors, invalid matrix inputs,
-/// provenance mismatches, inconsistent outcomes, and incomplete coverage fail
-/// verification. Report paths are informational and need not match local paths.
+/// Structural errors, invalid matrix inputs, provenance mismatches, inconsistent
+/// outcomes, and incomplete coverage fail verification. Report paths are
+/// informational and need not match local paths.
 ///
 /// By default every checklist verdict must pass. Policy overrides allow failed
 /// or skipped verdicts, or terminal generator errors. Pending and interrupted
@@ -40,7 +40,7 @@ VerificationResult verifyReport(
     if (matrix['sha256'] != context.matrixSha256) {
       errors.add('Matrix SHA-256 does not match the supplied matrix file.');
     }
-    // Version 1 predates matrix version metadata; its byte hash still applies.
+    // Legacy reports omit matrix version metadata; the byte hash still applies.
     if (data['schema_version'] != 1 &&
         matrix['version'] != context.matrixVersion) {
       errors.add('Matrix version does not match the supplied matrix file.');
