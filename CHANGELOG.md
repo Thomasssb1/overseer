@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Non-interactive `overseer verify` command and `verifyReport` API for CI gates, with schema/version validation, exact case coverage, consistent outcomes and totals, commit and matrix provenance checks, and explicit failure/skip/error policy flags. The CLI emits JSON on stdout, diagnostics on stderr, and exits 0 or 1.
+- `overseer verify` command and `verifyReport` API to validate report coverage, outcomes, and provenance for CI.
 
 ## [1.1.0] - 2026-10-17
 
