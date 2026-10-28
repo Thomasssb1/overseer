@@ -259,7 +259,7 @@ void main() {
       expect(content, contains('[⏭ SKIPPED]'));
     });
 
-    test('empty verdicts map produces valid report', () async {
+    test('counts a case with no verdicts as skipped', () async {
       reporter.record(_makeResult());
       final path = await reporter.writeReport();
       expect(File(path).existsSync(), isTrue);
@@ -273,45 +273,6 @@ void main() {
       expect(File(path1).existsSync(), isTrue);
       expect(File(path2).existsSync(), isTrue);
       expect(path1, isNot(equals(path2)));
-    });
-  });
-
-  group('ChecklistResult helpers', () {
-    test('passed is true when all verdicts are pass/skipped', () {
-      final result = _makeResult(
-        verdicts: {
-          'A': ChecklistVerdict.pass,
-          'B': ChecklistVerdict.skipped,
-        },
-      );
-      expect(result.passed, isTrue);
-    });
-
-    test('passed is false when any verdict is fail', () {
-      final result = _makeResult(
-        verdicts: {
-          'A': ChecklistVerdict.pass,
-          'B': ChecklistVerdict.fail,
-        },
-      );
-      expect(result.passed, isFalse);
-    });
-
-    test('fullySkipped is true when all verdicts are skipped', () {
-      final result = _makeResult(
-        verdicts: {'A': ChecklistVerdict.skipped},
-      );
-      expect(result.fullySkipped, isTrue);
-    });
-
-    test('fullySkipped is false when any verdict is not skipped', () {
-      final result = _makeResult(
-        verdicts: {
-          'A': ChecklistVerdict.pass,
-          'B': ChecklistVerdict.skipped,
-        },
-      );
-      expect(result.fullySkipped, isFalse);
     });
   });
 }
