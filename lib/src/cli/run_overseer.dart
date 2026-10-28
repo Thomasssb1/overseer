@@ -16,10 +16,11 @@ int runOverseer(
 }) {
   final verify = ArgParser()
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show command help.')
-    ..addOption('report', help: 'Path to the JSON report (required).')
-    ..addOption('matrix', help: 'Path to the matrix YAML file (required).')
+    ..addOption('report', mandatory: true, help: 'Path to the JSON report.')
+    ..addOption('matrix',
+        mandatory: true, help: 'Path to the matrix YAML file.')
     ..addOption('expected-sha',
-        help: 'Full expected Git commit SHA (required).')
+        mandatory: true, help: 'Full expected Git commit SHA.')
     ..addFlag('allow-failures',
         negatable: false, help: 'Allow failed checklist verdicts.')
     ..addFlag('allow-skips',
@@ -50,8 +51,8 @@ int runOverseer(
           'Expected the verify subcommand with options.');
     }
     for (final name in ['report', 'matrix', 'expected-sha']) {
-      if (command.option(name)?.trim().isNotEmpty != true) {
-        throw FormatException('Missing required option --$name.');
+      if (command.option(name)!.trim().isEmpty) {
+        throw FormatException('Option --$name must not be blank.');
       }
     }
     final report =
@@ -66,6 +67,8 @@ int runOverseer(
     );
   } on FormatException catch (error) {
     result = VerificationResult(errors: [error.message]);
+  } on ArgumentError catch (error) {
+    result = VerificationResult(errors: ['${error.message}']);
   } on FileSystemException catch (error) {
     result = VerificationResult(
         errors: ['Cannot read report ${error.path}: ${error.message}']);

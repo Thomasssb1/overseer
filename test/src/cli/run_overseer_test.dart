@@ -93,7 +93,9 @@ checklist: [Good]
     test('shows help without accessing required inputs: $args', () {
       expect(run(args), 0);
       expect(output.toString(), contains('Usage: overseer verify'));
-      expect(output.toString(), contains('--expected-sha'));
+      for (final option in ['report', 'matrix', 'expected-sha']) {
+        expect(output.toString(), contains('--$option (mandatory)'));
+      }
       expect(output.toString(), contains('--allow-errors'));
       expect(errorOutput.isEmpty, isTrue);
     });
@@ -104,14 +106,16 @@ checklist: [Good]
       final args = arguments();
       final index = args.indexOf('--$option');
       args.removeRange(index, index + 2);
-      expectFailure(args, 'Missing required option --$option');
+      expectFailure(args, 'Option $option is mandatory.');
     });
 
-    test('rejects blank required option --$option', () {
-      final args = arguments();
-      args[args.indexOf('--$option') + 1] = '   ';
-      expectFailure(args, 'Missing required option --$option');
-    });
+    for (final value in ['', '   ']) {
+      test('rejects blank required option --$option: "$value"', () {
+        final args = arguments();
+        args[args.indexOf('--$option') + 1] = value;
+        expectFailure(args, 'Option --$option must not be blank.');
+      });
+    }
   }
 
   test('rejects unexpected positional values following valid options', () {
