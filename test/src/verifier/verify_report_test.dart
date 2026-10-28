@@ -340,6 +340,31 @@ checklist: [Good]
     expectRejected(verify(), 'parameters do not match');
   });
 
+  test('matches parameter values independently of their map order', () {
+    matrix.writeAsStringSync(matrix.readAsStringSync().replaceFirst(
+        'color: [red, blue]', 'color: [red, blue]\n  enabled: [true, false]'));
+    report['matrix']['sha256'] =
+        sha256.convert(matrix.readAsBytesSync()).toString();
+    report['cases'][0]['params'] = {'enabled': true, 'color': 'red'};
+    report['cases'][1]['params'] = {'enabled': false, 'color': 'blue'};
+
+    final result = verify();
+    expect(result.valid, isTrue, reason: result.errors.join('\n'));
+    expect(result.errors, isEmpty);
+  });
+
+  test('reports case identity and outcome violations together', () {
+    report['cases'][0]['name'] = 'other suite';
+    report['cases'][0]['checklist'][0]['item'] = 'Different question';
+    report['cases'][0]['checklist'][0]['verdict'] = 'fail';
+
+    final result = verify();
+    expectRejected(result, 'name or parameters do not match');
+    expectRejected(result, 'checklist does not match');
+    expectRejected(result, 'status does not match');
+    expectRejected(result, 'failed checklist verdicts');
+  });
+
   for (final change in ['missing', 'extra', 'reordered', 'renamed']) {
     test('rejects $change checklist items', () {
       final items = report['cases'][0]['checklist'] as List;

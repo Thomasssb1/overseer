@@ -1,5 +1,6 @@
 import '../exceptions.dart';
 import '../matrix_engine/matrix_engine.dart';
+import '../models.dart';
 import '../reporter.dart';
 import 'verification_result.dart';
 
@@ -65,68 +66,26 @@ VerificationResult verifyReport(
       } else {
         if (!seen.add(index)) errors.add('Duplicate case index: $index.');
         final original = expected[index.toInt()];
-        final params = _object(testCase['params']);
-        if (testCase['name'] != original.name ||
-            params.length != original.params.length ||
-            original.params.entries.any((entry) =>
-                !params.containsKey(entry.key) ||
-                params[entry.key] != entry.value)) {
+        if (!_matchesNameAndParameters(testCase, original)) {
           errors.add('Case $index name or parameters do not match the matrix.');
         }
-        if (checklist.length != original.checklist.length ||
-            original.checklist
-                .asMap()
-                .entries
-                .any((entry) => checklist[entry.key]['item'] != entry.value)) {
+        if (!_matchesChecklist(checklist, original.checklist)) {
           errors.add('Case $index checklist does not match the matrix.');
         }
       }
 
       final verdicts = checklist.map((item) => item['verdict']).toList();
-      final hasFailure = verdicts.contains('fail');
-      final hasSkip = verdicts.contains('skipped');
-      final hasMissing = verdicts.contains(null);
-      final hasReview = testCase['artifact_path'] != null;
-      final hasError = testCase['error'] != null;
-      final isCompleted = testCase['completed'] == true;
-      final String status;
-      if (hasError) {
-        status = 'error';
-      } else if (!hasReview) {
-        status = 'pending';
-      } else if (hasFailure) {
-        status = 'failed';
-      } else if (!isCompleted || hasSkip || hasMissing) {
-        status = 'skipped';
-      } else {
-        status = 'passed';
-      }
+      final status = _caseStatus(testCase, verdicts);
       counts[status] = counts[status]! + 1;
-      if (isCompleted) completed++;
-      if (testCase['status'] != status) {
-        errors.add('Case $index status does not match its recorded outcome '
-            '(expected $status).');
-      }
-      if ((hasError || !hasReview) &&
-          (isCompleted || verdicts.any((verdict) => verdict != null))) {
-        errors.add('Case $index has review data without a review outcome.');
-      }
-      if (hasError && hasReview) {
-        errors.add(
-            'Case $index has both a generator error and a review artifact.');
-      }
-      if (status == 'pending' || (!hasError && (!isCompleted || hasMissing))) {
-        errors.add('Case $index has an unfinished review.');
-      }
-      if (hasFailure && !allowFailures) {
-        errors.add('Case $index contains failed checklist verdicts.');
-      }
-      if (hasSkip && !allowSkips) {
-        errors.add('Case $index contains skipped checklist verdicts.');
-      }
-      if (hasError && !allowErrors) {
-        errors.add('Case $index has a terminal generator error.');
-      }
+      if (testCase['completed'] == true) completed++;
+      errors.addAll(_verifyCaseOutcome(
+        testCase,
+        verdicts,
+        status: status,
+        allowFailures: allowFailures,
+        allowSkips: allowSkips,
+        allowErrors: allowErrors,
+      ));
     }
     for (final testCase in expected) {
       if (!seen.contains(testCase.index)) {
@@ -165,6 +124,84 @@ VerificationResult verifyReport(
   } on OverseerException catch (error) {
     return VerificationResult(errors: [error.message]);
   }
+}
+
+bool _matchesNameAndParameters(
+    Map<dynamic, dynamic> testCase, TestCase expected) {
+  if (testCase['name'] != expected.name) return false;
+
+  final params = _object(testCase['params']);
+  if (params.length != expected.params.length) return false;
+  for (final entry in expected.params.entries) {
+    if (!params.containsKey(entry.key) || params[entry.key] != entry.value) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool _matchesChecklist(
+    List<Map<dynamic, dynamic>> checklist, List<String> expected) {
+  if (checklist.length != expected.length) return false;
+  for (var i = 0; i < expected.length; i++) {
+    if (checklist[i]['item'] != expected[i]) return false;
+  }
+  return true;
+}
+
+String _caseStatus(Map<dynamic, dynamic> testCase, List<dynamic> verdicts) {
+  if (testCase['error'] != null) return 'error';
+  if (testCase['artifact_path'] == null) return 'pending';
+  if (verdicts.contains('fail')) return 'failed';
+  if (testCase['completed'] != true ||
+      verdicts.contains('skipped') ||
+      verdicts.contains(null)) {
+    return 'skipped';
+  }
+  return 'passed';
+}
+
+List<String> _verifyCaseOutcome(
+  Map<dynamic, dynamic> testCase,
+  List<dynamic> verdicts, {
+  required String status,
+  required bool allowFailures,
+  required bool allowSkips,
+  required bool allowErrors,
+}) {
+  final errors = <String>[];
+  final index = testCase['index'];
+  final hasReview = testCase['artifact_path'] != null;
+  final hasError = testCase['error'] != null;
+  final isCompleted = testCase['completed'] == true;
+  final hasReviewData =
+      isCompleted || verdicts.any((verdict) => verdict != null);
+  final isUnfinished = status == 'pending' ||
+      (!hasError && (!isCompleted || verdicts.contains(null)));
+
+  if (testCase['status'] != status) {
+    errors.add('Case $index status does not match its recorded outcome '
+        '(expected $status).');
+  }
+  if ((hasError || !hasReview) && hasReviewData) {
+    errors.add('Case $index has review data without a review outcome.');
+  }
+  if (hasError && hasReview) {
+    errors.add('Case $index has both a generator error and a review artifact.');
+  }
+  if (isUnfinished) {
+    errors.add('Case $index has an unfinished review.');
+  }
+  if (verdicts.contains('fail') && !allowFailures) {
+    errors.add('Case $index contains failed checklist verdicts.');
+  }
+  if (verdicts.contains('skipped') && !allowSkips) {
+    errors.add('Case $index contains skipped checklist verdicts.');
+  }
+  if (hasError && !allowErrors) {
+    errors.add('Case $index has a terminal generator error.');
+  }
+  return errors;
 }
 
 Map<dynamic, dynamic> _object(Object? value) {
