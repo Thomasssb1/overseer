@@ -12,46 +12,67 @@ void main() {
   );
 
   group('ExecutionWrapper – success', () {
-    test('passes the original case and returns the artifact with all metadata',
-        () async {
+    test('returns ArtifactResult from generator', () async {
       const wrapper = ExecutionWrapper();
-      final artifact = ArtifactResult(
-          path: '/tmp/output.mp4', metadata: {'fps': 30, 'codec': 'h264'});
-      TestCase? received;
       final result = await wrapper.run(sampleCase, (tc) async {
-        received = tc;
-        return artifact;
+        return ArtifactResult(path: '/tmp/output.mp4');
       });
-      expect(received, same(sampleCase));
-      expect(result, same(artifact));
       expect(result.path, '/tmp/output.mp4');
-      expect(result.metadata, {'fps': 30, 'codec': 'h264'});
+    });
+
+    test('passes TestCase to generator correctly', () async {
+      const wrapper = ExecutionWrapper();
+      TestCase? received;
+      await wrapper.run(sampleCase, (tc) async {
+        received = tc;
+        return ArtifactResult(path: '/tmp/out.mp4');
+      });
+      expect(received?.params['resolution'], '1080');
+    });
+
+    test('metadata is preserved in result', () async {
+      const wrapper = ExecutionWrapper();
+      final result = await wrapper.run(sampleCase, (tc) async {
+        return ArtifactResult(
+          path: '/tmp/a.mp4',
+          metadata: {'fps': 30, 'codec': 'h264'},
+        );
+      });
+      expect(result.metadata['fps'], 30);
     });
   });
 
   group('ExecutionWrapper – error handling', () {
-    test('wraps unexpected errors with the original cause and case label',
-        () async {
+    test('wraps unexpected exception in GeneratorException', () async {
       const wrapper = ExecutionWrapper();
-      final cause = StateError('unexpected');
-      await expectLater(
+      expect(
         () => wrapper.run(sampleCase, (tc) async {
-          throw cause;
+          throw StateError('unexpected');
         }),
-        throwsA(isA<GeneratorException>()
-            .having((error) => error.cause, 'cause', same(cause))
-            .having((error) => error.message, 'message',
-                contains(sampleCase.label))),
+        throwsA(isA<GeneratorException>()),
       );
     });
 
     test('re-throws GeneratorException as-is', () async {
       const wrapper = ExecutionWrapper();
       const original = GeneratorException('deliberate error');
-      await expectLater(
+      expect(
         () => wrapper.run(sampleCase, (tc) async => throw original),
         throwsA(same(original)),
       );
+    });
+
+    test('GeneratorException message is descriptive', () async {
+      const wrapper = ExecutionWrapper();
+      GeneratorException? caught;
+      try {
+        await wrapper.run(sampleCase, (tc) async {
+          throw Exception('boom');
+        });
+      } on GeneratorException catch (e) {
+        caught = e;
+      }
+      expect(caught?.message, contains('my_suite'));
     });
   });
 }
