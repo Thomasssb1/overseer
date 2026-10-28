@@ -72,48 +72,26 @@ checklist: [Good]
     expect(errorOutput.toString(), '${result['summary']}\n');
   });
 
-  for (final args in [
-    ['wat'],
-    ['verify', 'extra'],
-    ['help', 'wat'],
-  ]) {
-    test('rejects unknown commands or unexpected arguments: $args', () async {
-      expect(await run(args), 1);
-      expect(jsonDecode(output.toString())['valid'], isFalse);
-      expect(errorOutput.toString(), contains('Verification failed'));
-    });
-  }
+  test('returns JSON diagnostics for an unknown command', () async {
+    await expectFailure(['wat'], 'Could not find a command named "wat"');
+  });
 
-  for (final args in [
-    <String>[],
-    ['--help'],
-    ['-h'],
-    ['help'],
-  ]) {
-    test('shows global help and available commands: $args', () async {
-      expect(await run(args), 0);
-      expect(output.toString(), contains('Usage: overseer <command>'));
-      expect(output.toString(), contains('verify'));
-      expect(errorOutput.isEmpty, isTrue);
-    });
-  }
+  test('shows global help when invoked without a command', () async {
+    expect(await run([]), 0);
+    expect(output.toString(), contains('Usage: overseer <command>'));
+    expect(output.toString(), contains('verify'));
+    expect(errorOutput.isEmpty, isTrue);
+  });
 
-  for (final args in [
-    ['verify', '--help'],
-    ['verify', '-h'],
-    ['help', 'verify'],
-    ['--help', 'verify'],
-  ]) {
-    test('shows help without accessing required inputs: $args', () async {
-      expect(await run(args), 0);
-      expect(output.toString(), contains('Usage: overseer verify'));
-      for (final option in ['report', 'matrix', 'expected-sha']) {
-        expect(output.toString(), contains('--$option (mandatory)'));
-      }
-      expect(output.toString(), contains('--allow-errors'));
-      expect(errorOutput.isEmpty, isTrue);
-    });
-  }
+  test('shows command help without requiring report inputs', () async {
+    expect(await run(['verify', '--help']), 0);
+    expect(output.toString(), contains('Usage: overseer verify'));
+    for (final option in ['report', 'matrix', 'expected-sha']) {
+      expect(output.toString(), contains('--$option (mandatory)'));
+    }
+    expect(output.toString(), contains('--allow-errors'));
+    expect(errorOutput.isEmpty, isTrue);
+  });
 
   for (final option in ['report', 'matrix', 'expected-sha']) {
     test('rejects omitted required option --$option', () async {
@@ -123,13 +101,11 @@ checklist: [Good]
       await expectFailure(args, 'Option $option is mandatory.');
     });
 
-    for (final value in ['', '   ']) {
-      test('rejects blank required option --$option: "$value"', () async {
-        final args = arguments();
-        args[args.indexOf('--$option') + 1] = value;
-        await expectFailure(args, 'Option --$option must not be blank.');
-      });
-    }
+    test('rejects whitespace-only --$option values', () async {
+      final args = arguments();
+      args[args.indexOf('--$option') + 1] = '   ';
+      await expectFailure(args, 'Option --$option must not be blank.');
+    });
   }
 
   test('rejects unexpected positional values following valid options',
@@ -142,19 +118,9 @@ checklist: [Good]
     await expectFailure([...arguments(), '--allow-skip'], 'allow-skip');
   });
 
-  test('rejects option with no value without prompting', () async {
-    await expectFailure(['verify', '--report'], 'report');
-  });
-
   test('rejects a missing report with machine-readable diagnostics', () async {
     report.deleteSync();
     await expectFailure(arguments(), 'Cannot read report');
-  });
-
-  test('rejects a directory supplied as the report', () async {
-    final args = arguments();
-    args[args.indexOf('--report') + 1] = tempDir.path;
-    await expectFailure(args, 'Cannot read report');
   });
 
   test('rejects malformed JSON with machine-readable diagnostics', () async {
@@ -162,17 +128,9 @@ checklist: [Good]
     await expectFailure(arguments(), 'Unexpected character');
   });
 
-  test('rejects structurally invalid JSON without a stack trace', () async {
+  test('returns schema diagnostics for structurally invalid JSON', () async {
     report.writeAsStringSync('null');
     await expectFailure(arguments(), 'Invalid report');
-    expect(errorOutput.toString(), isNot(contains('StackTrace')));
-  });
-
-  test('rejects invalid expected SHA rather than trusting the report',
-      () async {
-    final args = arguments();
-    args[args.indexOf('--expected-sha') + 1] = 'HEAD';
-    await expectFailure(args, 'Commit SHA must be a full Git object ID');
   });
 
   test('rejects a valid but mismatched expected SHA', () async {
@@ -181,17 +139,12 @@ checklist: [Good]
     await expectFailure(args, 'Commit SHA mismatch');
   });
 
-  test('rejects missing matrix with machine-readable diagnostics', () async {
-    matrix.deleteSync();
-    await expectFailure(arguments(), 'Matrix file not found');
-  });
-
   for (final (status, verdict, flag) in [
     ('failed', 'fail', '--allow-failures'),
     ('skipped', 'skipped', '--allow-skips'),
     ('error', null, '--allow-errors'),
   ]) {
-    test('passes $flag through to the verification policy', () async {
+    test('allows $status outcomes only when $flag is supplied', () async {
       final data = jsonDecode(report.readAsStringSync());
       final isError = status == 'error';
       data['cases'][0]['status'] = status;

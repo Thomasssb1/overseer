@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:overseer/overseer.dart';
 import 'package:test/test.dart';
 
@@ -8,7 +6,7 @@ void main() {
     final result = VerificationResult(
         errors: [], expectedCaseCount: 2, reportedCaseCount: 2);
     expect(result.valid, isTrue);
-    expect(jsonDecode(jsonEncode(result.toJson())), {
+    expect(result.toJson(), {
       'valid': true,
       'summary': 'Verification passed: all 2 expected cases satisfy policy.',
       'expected_case_count': 2,

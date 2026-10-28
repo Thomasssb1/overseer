@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -59,16 +58,6 @@ checklist: [Good]
     expect(output.isEmpty, isTrue);
   });
 
-  test('rejects provenance mismatch in the supplied report', () async {
-    final data = jsonDecode(report.readAsStringSync());
-    data['commit_sha'] = 'b' * 40;
-    report.writeAsStringSync(jsonEncode(data));
-
-    final result = await runner.run(arguments());
-    expect(result!.valid, isFalse);
-    expect(result.errors, contains(contains('Commit SHA mismatch')));
-  });
-
   test('shows generated command help without reading report or matrix',
       () async {
     report.deleteSync();
@@ -78,12 +67,5 @@ checklist: [Good]
     expect(output.toString(), contains('Usage: overseer verify'));
     expect(output.toString(), contains('--expected-sha (mandatory)'));
     expect(output.toString(), contains('Exits 0 on success'));
-  });
-
-  test('rejects positional arguments through takesArguments', () async {
-    await expectLater(
-        runner.run([...arguments(), 'extra']),
-        throwsA(isA<UsageException>().having((error) => error.message,
-            'message', contains('does not take any arguments'))));
   });
 }

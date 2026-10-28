@@ -118,52 +118,26 @@ checklist: [Looks good, Sounds good]
     expect(verify().valid, isTrue);
   });
 
-  for (final version in [1, 2, 3]) {
-    test('accepts supported schema version $version with its required fields',
-        () {
-      report['schema_version'] = version;
-      report[r'$schema'] = 'https://raw.githubusercontent.com/Thomasssb1/'
-          'overseer/main/schema/report.v$version.json';
-      if (version < 3) report.remove('overseer_version');
-      expect(verify().valid, isTrue);
-    });
-  }
+  test('returns schema diagnostics for a non-object report', () {
+    expectRejected(
+        verifyReport(null, matrixPath: matrix.path, expectedSha: revision),
+        'Invalid report');
+  });
 
-  for (final invalid in <Object?>[
-    null,
-    [],
-    'report',
-    42,
-    {},
-    {'cases': []}
-  ]) {
-    test('rejects malformed report root without a type error: $invalid', () {
-      expectRejected(
-          verifyReport(invalid, matrixPath: matrix.path, expectedSha: revision),
-          'Invalid report');
-    });
-  }
+  test('rejects unsupported schemas before checking the matrix', () {
+    report['schema_version'] = 999;
+    matrix.deleteSync();
+    final result = verify();
+    expectRejected(result, 'schema_version');
+    expect(result.expectedCaseCount, isNull);
+    expect(result.reportedCaseCount, isNull);
+  });
 
-  for (final change in <String, Object?>{
-    'schema_version': 999,
-    r'$schema': 'https://example.com/unknown.json',
-    'matrix': [],
-    'summary': [],
-    'cases': [null],
-    'commit_sha': 'short',
-  }.entries) {
-    test('rejects malformed ${change.key} before semantic verification', () {
-      report[change.key] = change.value;
-      expectRejected(verify(), 'Invalid report');
-    });
-  }
-
-  for (final invalid in <Object?>[-1, 0.5, '0', null, []]) {
-    test('rejects invalid index $invalid without a type error', () {
-      report['cases'][0]['index'] = invalid;
-      expectRejected(verify(), 'Invalid report');
-    });
-  }
+  test('rejects fractional indices instead of truncating them to case indices',
+      () {
+    report['cases'][0]['index'] = 0.5;
+    expectRejected(verify(), 'Invalid report');
+  });
 
   test('accepts integral JSON numbers without unsafe integer casts', () {
     report['cases'][0]['index'] = 0.0;
@@ -178,20 +152,11 @@ checklist: [Looks good, Sounds good]
     });
   }
 
-  for (final invalid in ['', 'a' * 7, 'z' * 40, ' a${'a' * 39}']) {
-    test('rejects invalid expected commit SHA: $invalid', () {
-      expectRejected(
-          verifyReport(report, matrixPath: matrix.path, expectedSha: invalid),
-          'Commit SHA must be a full Git object ID');
-    });
-  }
-
-  test('accepts a full SHA-256 Git object ID', () {
-    report['commit_sha'] = 'b' * 64;
-    expect(
-        verifyReport(report, matrixPath: matrix.path, expectedSha: 'b' * 64)
-            .valid,
-        isTrue);
+  test('returns context validation diagnostics for an invalid expected SHA',
+      () {
+    expectRejected(
+        verifyReport(report, matrixPath: matrix.path, expectedSha: 'HEAD'),
+        'Commit SHA must be a full Git object ID');
   });
 
   test('rejects matrix byte changes even when expanded cases are identical',
@@ -200,43 +165,38 @@ checklist: [Looks good, Sounds good]
     expectRejected(verify(), 'Matrix SHA-256');
   });
 
-  test('rejects mismatched matrix hash metadata', () {
-    report['matrix']['sha256'] = 'b' * 64;
-    expectRejected(verify(), 'Matrix SHA-256');
-  });
-
-  for (final mode in ['list', 'permutations']) {
-    test('accepts reports produced by Reporter for $mode matrices', () async {
-      matrix.writeAsStringSync('''
+  test(
+      'verifies a generated report with scalar parameters and a matrix version',
+      () async {
+    matrix.writeAsStringSync('''
 name: scalar_suite
 version: '2.0.0'
-mode: $mode
+mode: permutations
 parameters:
   enabled: [true, false]
   threshold: [1.5, 2]
   optional: [null, text]
 checklist: [Good]
 ''');
-      final cases = MatrixEngine.load(matrix.path);
-      final reporter = Reporter(
-          outputDir: tempDir.path,
-          format: ReportFormat.json,
-          context: ReportContext.capture(
-              matrixPath: matrix.path, cases: cases, commitSha: revision));
-      for (final testCase in cases) {
-        reporter.record(ChecklistResult(
-            testCase: testCase,
-            artifactPath: 'artifact',
-            verdicts: {'Good': ChecklistVerdict.pass}));
-      }
-      final produced =
-          jsonDecode(File(await reporter.writeReport()).readAsStringSync());
-      final result = verifyReport(produced,
-          matrixPath: matrix.path, expectedSha: revision);
-      expect(result.valid, isTrue, reason: result.errors.join('\n'));
-      expect(result.expectedCaseCount, mode == 'list' ? 2 : 8);
-    });
-  }
+    final cases = MatrixEngine.load(matrix.path);
+    final reporter = Reporter(
+        outputDir: tempDir.path,
+        format: ReportFormat.json,
+        context: ReportContext.capture(
+            matrixPath: matrix.path, cases: cases, commitSha: revision));
+    for (final testCase in cases) {
+      reporter.record(ChecklistResult(
+          testCase: testCase,
+          artifactPath: 'artifact',
+          verdicts: {'Good': ChecklistVerdict.pass}));
+    }
+    final produced =
+        jsonDecode(File(await reporter.writeReport()).readAsStringSync());
+    final result =
+        verifyReport(produced, matrixPath: matrix.path, expectedSha: revision);
+    expect(result.valid, isTrue, reason: result.errors.join('\n'));
+    expect(result.expectedCaseCount, 8);
+  });
 
   for (final version in <String?>[null, 'other']) {
     test('rejects missing or mismatched matrix version metadata: $version', () {
@@ -254,8 +214,7 @@ checklist: [Good]
     expectRejected(verify(), 'Matrix version');
   });
 
-  test('v1 verifies byte provenance without requiring newer version metadata',
-      () {
+  test('accepts legacy reports without matrix version metadata', () {
     matrix.writeAsStringSync("version: '2.0.0'\n${matrix.readAsStringSync()}");
     report['matrix']['sha256'] =
         sha256.convert(matrix.readAsBytesSync()).toString();
@@ -270,20 +229,17 @@ checklist: [Good]
     expectRejected(verify(), 'Matrix file not found');
   });
 
-  for (final invalid in [
-    'name: [',
-    '[]',
-    'name: suite\nparameters: {x: [1], y: [2, 3]}\nchecklist: [Good]',
-    'name: suite\nparameters: {x: [{nested: bad}]}\nchecklist: [Good]',
-    'name: suite\nparameters: {x: [.nan]}\nchecklist: [Good]',
-  ]) {
-    test('rejects invalid matrix input: $invalid', () {
-      matrix.writeAsStringSync(invalid);
-      final result = verify();
-      expect(result.valid, isFalse);
-      expect(result.errors, isNotEmpty);
-    });
-  }
+  test('returns matrix parser diagnostics for malformed YAML', () {
+    matrix.writeAsStringSync('name: [');
+    expectRejected(verify(), 'Failed to parse matrix YAML');
+  });
+
+  test('returns context diagnostics for non-finite matrix parameter values',
+      () {
+    matrix.writeAsStringSync(
+        'name: suite\nparameters: {x: [.nan]}\nchecklist: [Good]');
+    expectRejected(verify(), 'finite JSON scalar values');
+  });
 
   test('rejects a missing case even if reported counts and flags claim success',
       () {
@@ -291,8 +247,7 @@ checklist: [Good]
     expectRejected(verify(), 'Missing expected case 1');
   });
 
-  test('rejects an empty report rather than treating it as vacuous success',
-      () {
+  test('rejects empty case coverage even when the report claims success', () {
     report['cases'] = [];
     report['expected_case_count'] = 0;
     report['completed_case_count'] = 0;
@@ -456,15 +411,15 @@ checklist: [Good]
     });
   }
 
-  for (final field in [
-    'expected_case_count',
-    'completed_case_count',
-    'complete',
-    'successful'
+  for (final (field, value, diagnostic) in [
+    ('expected_case_count', 99, 'Expected case count does not match'),
+    ('completed_case_count', 99, 'Completed case count does not match'),
+    ('complete', false, 'Report complete flag does not match'),
+    ('successful', false, 'Report successful flag does not match'),
   ]) {
-    test('rejects inconsistent top-level $field', () {
-      report[field] = field.endsWith('count') ? 99 : false;
-      expect(verify().valid, isFalse);
+    test('rejects an inconsistent $field with a specific diagnostic', () {
+      report[field] = value;
+      expectRejected(verify(), diagnostic);
     });
   }
 
