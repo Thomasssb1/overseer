@@ -8,6 +8,7 @@ A Dart human-in-the-loop (HitL) testing framework for manually verifying backend
 - **Execution Wrapper** - pass each parameter set to your custom generation logic.
 - **Interactive Prompter** - auto-opens the artifact, walks you through a checklist, supports hot-retry (`r`) and save-and-quit (`q`).
 - **Reporter** - compiles your answers into a Markdown or versioned JSON test report.
+- **Verify** - checks JSON reports against a matrix, commit SHA, and review policy for CI gates.
 - **Resume / Lock File** - quit at any point and pick up exactly where you left off.
 
 ## Quick Start
@@ -95,7 +96,7 @@ final runner = OverseerRunner(
 final reportPath = await runner.run();
 ```
 
-New reports use [schema version 3](schema/report.v3.json).
+Reports follow the [JSON schema](schema/report.v3.json).
 Validate a decoded report:
 
 ```dart
@@ -105,7 +106,25 @@ validateReport(report); // Throws ReportException for an invalid structure.
 
 Reports include every expected case, review outcomes, commit SHA, and matrix SHA-256.
 `successful` requires every checklist item in every case to pass.
-CI should also compare the commit SHA, matrix hash, and expected case count with the checkout being tested.
+Use `overseer verify` to compare the report with the checkout being tested.
 Field descriptions are in the schema.
 
 Resume requires matching commit and matrix provenance, so older lock files start a fresh review.
+
+### Verify a report in CI
+
+```sh
+dart run overseer verify --report reports/review.json --matrix tests/my_test.matrix.yaml --expected-sha "$GITHUB_SHA" > verification.json
+```
+
+All three options are required; `--expected-sha` takes a full Git commit SHA.
+Verification checks the report schema, case coverage and outcomes, commit SHA,
+and the exact matrix file hash.
+
+All verdicts must pass by default. Enable `--allow-failures`, `--allow-skips`, or
+`--allow-errors` independently to allow failed verdicts, skipped verdicts, or
+terminal generator errors. Pending and interrupted reviews always fail.
+
+JSON results go to stdout and readable diagnostics to stderr. Exit codes are
+**0** for success and **1** for invalid input or failed verification.
+Run `dart run overseer verify --help` for options.

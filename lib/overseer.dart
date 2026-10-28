@@ -27,4 +27,5 @@ export 'src/matrix_engine/matrix_mode.dart' show MatrixMode;
 export 'src/models.dart';
 export 'src/overseer_runner.dart' show OverseerRunner;
 export 'src/reporter.dart';
+export 'src/verifier.dart';
 export 'src/version.dart' show overseerVersion;
