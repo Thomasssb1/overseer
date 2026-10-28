@@ -49,11 +49,11 @@ checklist: [Good]
         revision,
       ];
 
-  int run(List<String> args) =>
+  Future<int> run(List<String> args) =>
       runOverseer(args, output: output, errorOutput: errorOutput);
 
-  void expectFailure(List<String> args, String diagnostic) {
-    expect(run(args), 1);
+  Future<void> expectFailure(List<String> args, String diagnostic) async {
+    expect(await run(args), 1);
     final result = jsonDecode(output.toString());
     expect(result['valid'], isFalse);
     expect(result['errors'], contains(contains(diagnostic)));
@@ -62,8 +62,8 @@ checklist: [Good]
   }
 
   test('returns success with JSON on stdout and a readable summary on stderr',
-      () {
-    expect(run(arguments()), 0);
+      () async {
+    expect(await run(arguments()), 0);
     final result = jsonDecode(output.toString());
     expect(result['valid'], isTrue);
     expect(result['expected_case_count'], 1);
@@ -73,25 +73,39 @@ checklist: [Good]
   });
 
   for (final args in [
-    <String>[],
     ['wat'],
-    ['verify', 'extra']
+    ['verify', 'extra'],
+    ['help', 'wat'],
   ]) {
-    test('rejects missing or unexpected subcommand arguments: $args', () {
-      expect(run(args), 1);
+    test('rejects unknown commands or unexpected arguments: $args', () async {
+      expect(await run(args), 1);
       expect(jsonDecode(output.toString())['valid'], isFalse);
       expect(errorOutput.toString(), contains('Verification failed'));
     });
   }
 
   for (final args in [
+    <String>[],
     ['--help'],
     ['-h'],
-    ['verify', '--help'],
-    ['verify', '-h']
+    ['help'],
   ]) {
-    test('shows help without accessing required inputs: $args', () {
-      expect(run(args), 0);
+    test('shows global help and available commands: $args', () async {
+      expect(await run(args), 0);
+      expect(output.toString(), contains('Usage: overseer <command>'));
+      expect(output.toString(), contains('verify'));
+      expect(errorOutput.isEmpty, isTrue);
+    });
+  }
+
+  for (final args in [
+    ['verify', '--help'],
+    ['verify', '-h'],
+    ['help', 'verify'],
+    ['--help', 'verify'],
+  ]) {
+    test('shows help without accessing required inputs: $args', () async {
+      expect(await run(args), 0);
       expect(output.toString(), contains('Usage: overseer verify'));
       for (final option in ['report', 'matrix', 'expected-sha']) {
         expect(output.toString(), contains('--$option (mandatory)'));
@@ -102,71 +116,74 @@ checklist: [Good]
   }
 
   for (final option in ['report', 'matrix', 'expected-sha']) {
-    test('rejects omitted required option --$option', () {
+    test('rejects omitted required option --$option', () async {
       final args = arguments();
       final index = args.indexOf('--$option');
       args.removeRange(index, index + 2);
-      expectFailure(args, 'Option $option is mandatory.');
+      await expectFailure(args, 'Option $option is mandatory.');
     });
 
     for (final value in ['', '   ']) {
-      test('rejects blank required option --$option: "$value"', () {
+      test('rejects blank required option --$option: "$value"', () async {
         final args = arguments();
         args[args.indexOf('--$option') + 1] = value;
-        expectFailure(args, 'Option --$option must not be blank.');
+        await expectFailure(args, 'Option --$option must not be blank.');
       });
     }
   }
 
-  test('rejects unexpected positional values following valid options', () {
-    expectFailure([...arguments(), 'extra'], 'Expected the verify subcommand');
+  test('rejects unexpected positional values following valid options',
+      () async {
+    await expectFailure(
+        [...arguments(), 'extra'], 'does not take any arguments');
   });
 
-  test('rejects unrecognized policy flags', () {
-    expectFailure([...arguments(), '--allow-skip'], 'allow-skip');
+  test('rejects unrecognized policy flags', () async {
+    await expectFailure([...arguments(), '--allow-skip'], 'allow-skip');
   });
 
-  test('rejects option with no value without prompting', () {
-    expectFailure(['verify', '--report'], 'report');
+  test('rejects option with no value without prompting', () async {
+    await expectFailure(['verify', '--report'], 'report');
   });
 
-  test('rejects a missing report with machine-readable diagnostics', () {
+  test('rejects a missing report with machine-readable diagnostics', () async {
     report.deleteSync();
-    expectFailure(arguments(), 'Cannot read report');
+    await expectFailure(arguments(), 'Cannot read report');
   });
 
-  test('rejects a directory supplied as the report', () {
+  test('rejects a directory supplied as the report', () async {
     final args = arguments();
     args[args.indexOf('--report') + 1] = tempDir.path;
-    expectFailure(args, 'Cannot read report');
+    await expectFailure(args, 'Cannot read report');
   });
 
-  test('rejects malformed JSON with machine-readable diagnostics', () {
+  test('rejects malformed JSON with machine-readable diagnostics', () async {
     report.writeAsStringSync('{bad json');
-    expectFailure(arguments(), 'Unexpected character');
+    await expectFailure(arguments(), 'Unexpected character');
   });
 
-  test('rejects structurally invalid JSON without a stack trace', () {
+  test('rejects structurally invalid JSON without a stack trace', () async {
     report.writeAsStringSync('null');
-    expectFailure(arguments(), 'Invalid report');
+    await expectFailure(arguments(), 'Invalid report');
     expect(errorOutput.toString(), isNot(contains('StackTrace')));
   });
 
-  test('rejects invalid expected SHA rather than trusting the report', () {
+  test('rejects invalid expected SHA rather than trusting the report',
+      () async {
     final args = arguments();
     args[args.indexOf('--expected-sha') + 1] = 'HEAD';
-    expectFailure(args, 'Commit SHA must be a full Git object ID');
+    await expectFailure(args, 'Commit SHA must be a full Git object ID');
   });
 
-  test('rejects a valid but mismatched expected SHA', () {
+  test('rejects a valid but mismatched expected SHA', () async {
     final args = arguments();
     args[args.indexOf('--expected-sha') + 1] = 'b' * 40;
-    expectFailure(args, 'Commit SHA mismatch');
+    await expectFailure(args, 'Commit SHA mismatch');
   });
 
-  test('rejects missing matrix with machine-readable diagnostics', () {
+  test('rejects missing matrix with machine-readable diagnostics', () async {
     matrix.deleteSync();
-    expectFailure(arguments(), 'Matrix file not found');
+    await expectFailure(arguments(), 'Matrix file not found');
   });
 
   for (final (status, verdict, flag) in [
@@ -174,7 +191,7 @@ checklist: [Good]
     ('skipped', 'skipped', '--allow-skips'),
     ('error', null, '--allow-errors'),
   ]) {
-    test('passes $flag through to the verification policy', () {
+    test('passes $flag through to the verification policy', () async {
       final data = jsonDecode(report.readAsStringSync());
       final isError = status == 'error';
       data['cases'][0]['status'] = status;
@@ -190,11 +207,11 @@ checklist: [Good]
       data['summary']['passed'] = 0;
       data['summary'][status] = 1;
       report.writeAsStringSync(jsonEncode(data));
-      expect(run(arguments()), 1);
+      expect(await run(arguments()), 1);
       expect(jsonDecode(output.toString())['valid'], isFalse);
       output.clear();
       errorOutput.clear();
-      expect(run([...arguments(), flag]), 0);
+      expect(await run([...arguments(), flag]), 0);
       expect(jsonDecode(output.toString())['valid'], isTrue);
     });
   }
