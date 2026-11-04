@@ -111,6 +111,14 @@ Field descriptions are in the schema.
 
 Resume requires matching commit and matrix provenance, so older lock files start a fresh review.
 
+### Strict exit mode
+
+Set `strictExit: true` on `OverseerRunner` to exit non-zero when reviews fail,
+skip items, stop early, or end with a generator error. Reports are still saved.
+
+Use `allowSkips: true` to permit skipped items in completed reviews.
+Strict mode is off by default.
+
 ### Verify a report in CI
 
 ```sh

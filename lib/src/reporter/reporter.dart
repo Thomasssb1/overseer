@@ -68,6 +68,27 @@ class Reporter {
   /// Returns the total number of recorded results.
   int get count => _results.length;
 
+  /// Whether every expected case has a completed review that meets the policy.
+  ///
+  /// Failed verdicts, terminal generator errors, and unfinished reviews always
+  /// fail. Skipped verdicts fail unless [allowSkips] is true. Requires [context]
+  /// so missing cases can be detected; an empty matrix never passes.
+  bool meetsReviewPolicy({bool allowSkips = false}) {
+    final expected = context?.cases;
+    if (expected == null) {
+      throw const ReportException('Review policy requires a ReportContext.');
+    }
+    return expected.isNotEmpty &&
+        _results.length == expected.length &&
+        _errors.isEmpty &&
+        _incomplete.isEmpty &&
+        _results.every((result) => result.testCase.checklist.every((item) {
+              final verdict = result.verdicts[item];
+              return verdict == ChecklistVerdict.pass ||
+                  (allowSkips && verdict == ChecklistVerdict.skipped);
+            }));
+  }
+
   /// Writes the selected report format and returns the path to the file.
   Future<String> writeReport() async {
     final timestamp = _timestamp();
@@ -148,9 +169,7 @@ class Reporter {
       'expected_case_count': cases.length,
       'completed_case_count': completed,
       'complete': completed == cases.length,
-      'successful': cases.isNotEmpty &&
-          completed == cases.length &&
-          summary['passed'] == cases.length,
+      'successful': meetsReviewPolicy(),
       'summary': summary,
       'cases': cases,
     };

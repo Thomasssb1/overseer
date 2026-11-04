@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Opt-in `OverseerRunner(strictExit: true)` sets a failing process exit code for failed, skipped, unfinished, or generator-error reviews after saving the report. `allowSkips` permits completed reviews with skipped items; existing non-zero exit codes are preserved.
 - `overseer verify` command and `verifyReport` API to validate report coverage, outcomes, and provenance for CI.
 
 ## [1.1.0] - 2026-10-17
