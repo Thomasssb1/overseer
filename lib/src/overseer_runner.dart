@@ -40,6 +40,8 @@ class OverseerRunner {
     this.outputDir,
     this.autoOpen = true,
     this.reportFormat = ReportFormat.markdown,
+    this.strictExit = false,
+    this.allowSkips = false,
     this.commitSha,
     int maxRetries = 5,
     this.reader,
@@ -61,6 +63,15 @@ class OverseerRunner {
 
   /// Selects Markdown (default) or a machine-readable JSON report.
   final ReportFormat reportFormat;
+
+  /// Sets the process exit code to 1 when the saved run fails review policy.
+  ///
+  /// Requires every case to finish, with no failed verdicts or terminal
+  /// generator errors. Skipped verdicts fail unless [allowSkips] is true.
+  final bool strictExit;
+
+  /// Allows skipped checklist verdicts when [strictExit] is enabled.
+  final bool allowSkips;
 
   /// Source revision override. Otherwise uses GITHUB_SHA, then Git HEAD.
   final String? commitSha;
@@ -143,7 +154,7 @@ class OverseerRunner {
           }
           _println('\x1B[33m  Skipping this case and aborting the run.\x1B[0m');
           reporter.recordError(testCase, e, retryCount: retryCount);
-          final reportPath = await reporter.writeReport();
+          final reportPath = await _writeReport(reporter);
           _println('\n\x1B[36mReport saved to: $reportPath\x1B[0m');
           // Keep the lock file so the run can be resumed.
           return reportPath;
@@ -170,7 +181,7 @@ class OverseerRunner {
                 '\x1B[33m  Max retries reached for this case. '
                 'Saving progress and stopping the run.\x1B[0m',
               );
-              final reportPath = await reporter.writeReport();
+              final reportPath = await _writeReport(reporter);
               _println('\n\x1B[36mReport saved to: $reportPath\x1B[0m');
               return reportPath;
             }
@@ -191,7 +202,7 @@ class OverseerRunner {
               );
               reporter.record(normalized, completed: false);
             }
-            final reportPath = await reporter.writeReport();
+            final reportPath = await _writeReport(reporter);
             _println('\n\x1B[36mReport saved to: $reportPath\x1B[0m');
             // Keep the lock file so the run can be resumed.
             return reportPath;
@@ -200,12 +211,21 @@ class OverseerRunner {
     }
 
     // All cases done — finalise.
-    final reportPath = await reporter.writeReport();
+    final reportPath = await _writeReport(reporter);
     lock.clear();
     _println(
       '\n\x1B[32mAll ${cases.length} case(s) complete.\x1B[0m'
       '\n\x1B[36mReport: $reportPath\x1B[0m',
     );
+    return reportPath;
+  }
+
+  Future<String> _writeReport(Reporter reporter) async {
+    final reportPath = await reporter.writeReport();
+    if (strictExit && !reporter.meetsReviewPolicy(allowSkips: allowSkips)) {
+      if (exitCode == 0) exitCode = 1;
+      _println('Strict exit: review policy not met.');
+    }
     return reportPath;
   }
 
